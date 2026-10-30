@@ -1,11 +1,10 @@
 {
   "timeZone": "America/Sao_Paulo",
-  "dependencies": {
-  },
-  "webapp": {
-    "access": "ANYONE",
-    "executeAs": "USER_ACCESSING"
-  },
+  "dependencies": {},
   "exceptionLogging": "STACKDRIVER",
-  "runtimeVersion": "V8"
+  "runtimeVersion": "V8",
+  "webapp": {
+    "executeAs": "USER_ACCESSING",
+    "access": "ANYONE"
+  }
 }

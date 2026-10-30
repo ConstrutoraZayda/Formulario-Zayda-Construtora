@@ -122,15 +122,11 @@ header small{color:#5b7260!important;}
 <main>
 <section class="panel"><h2>1. Identificação e entrega <span class="badge" id="orderBadge">Novo pedido</span></h2><div class="fields">
 <div><label for="atendente">Nome do(a) atendente *</label><input id="atendente" required autocomplete="name" placeholder="Quem está atendendo"></div>
-<<<<<<< HEAD
-<div><label for="entregador">Nome(s) do(s) entregador() *</label><input id="entregador" required placeholder="Ex.: Carlos e João"></div>
-=======
-<div><label for="entregador">Nome(s) do(s) entregador(a) *</label><input id="entregador" required placeholder="Ex.: Carlos e João"></div>
->>>>>>> d8516942a18cae21718075a10729cdd8f6aa02b1
+<div><label for="entregador">Nome(s) do(s) entregador(es) *</label><input id="entregador" required placeholder="Ex.: Carlos e João"></div>
 <div class="full obrabox" id="obraBox"><label for="obraBusca">Obra *</label><span class="obrain"><input id="obraBusca" autocomplete="off" spellcheck="false" placeholder="Toque para ver todas as obras ou digite para buscar" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="obraPop"><button type="button" class="obralimpa" id="obraLimpa" aria-label="Deixar a obra em branco" title="Deixar em branco" hidden>×</button><button type="button" class="obraseta" id="obraSeta" tabindex="-1" aria-label="Mostrar todas as obras">▾</button><ul class="obrapop" id="obraPop" role="listbox" hidden></ul></span><div class="obraok" id="obraOk" role="status" hidden></div></div>
 <div class="full" id="endBox" hidden><label for="endereco">Endereço completo de entrega *</label><input id="endereco" required placeholder="Rua, número, lote e bairro"></div>
 <div id="casaBox" hidden><label for="casa">Casa / complemento *</label><input id="casa" required placeholder="Ex.: Casa 2, galpão, depósito"></div>
-<div class="full"><label for="referencia">Ponto de casa (opcional)</label><input id="referencia" maxlength="300" placeholder="Ex.: ao lado do mercado, portão verde, atrás da subprefeitura"></div>
+<div class="full"><label for="referencia">Ponto de referência (opcional)</label><input id="referencia" maxlength="300" placeholder="Ex.: ao lado do mercado, portão verde, atrás da subprefeitura"></div>
 <div class="full"><label for="observacoes">Observações (opcional)</label><input id="observacoes" placeholder="Horário, recados para a entrega"></div>
 </div></section>
 <section class="panel searchpanel"><h2>2. Pesquisar materiais</h2><div class="searchbox"><input id="busca" placeholder="Pesquisar nome, código ou categoria..." oninput="renderResults()" aria-label="Pesquisar produto"><select id="categoria" onchange="renderResults()"><option value="">Todas as categorias</option></select></div><div id="results" class="results"><div class="empty">Carregando...</div></div></section>
