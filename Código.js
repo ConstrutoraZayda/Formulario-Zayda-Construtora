@@ -4,6 +4,7 @@
  * Versão 1.2 (29/10/2026): confirmação de entrega pelo formulário, marcada com [ZAYDA 1.2].
  * Versão 1.3 (29/10/2026): nome e assinatura de quem recebeu, marcados com [ZAYDA 1.3].
  * Versão 1.4 (29/10/2026): lista de obras para escolher o endereço e ponto de referência, marcados com [ZAYDA 1.4].
+ * Versão 1.5 (30/10/2026): busca de pedidos em "Últimas solicitações", marcada com [ZAYDA 1.5].
  * O restante está igual ao original.
  * Instale este script dentro da planilha fornecida: Extensões > Apps Script.
  * DEPLOY: só permita contas Google da empresa / lista aprovada.
@@ -269,6 +270,27 @@ function savePedido(payload) {
 }
 
 function recentesPublicos() { auth_(); return recentes_(); }
+
+/** [ZAYDA 1.5] Busca pedidos (só a revisão mais recente) por parte do código, atendente, entregador,
+ *  obra/endereço, casa ou data (dd/mm ou dd/mm/aaaa). Ignora acentos e maiúsculas; todas as palavras
+ *  digitadas precisam aparecer. Até 30 resultados, do mais recente para o mais antigo. */
+function buscarPedidos(termo) {
+  auth_();
+  const norm = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const partes = norm(termo).trim().split(/\s+/).filter(Boolean);
+  if (!partes.length || norm(termo).trim().length < 2) return [];
+  const dataBr = t => { const m = /^(\d{4})-(\d{2})-(\d{2})(?: (\d{2}:\d{2}))?/.exec(t); return m ? {data: m[3] + '/' + m[2] + '/' + m[1], hora: m[4] || ''} : {data: t, hora: ''}; };
+  return Object.values(ultimos_())
+    .map(o => ({o, c: dataBr(o.criado), a: dataBr(o.atualizado)}))
+    .filter(x => {
+      const texto = norm([x.o.id, x.o.atendente, x.o.entregador, x.o.endereco, x.o.casa, x.c.data, x.a.data].join(' | '));
+      return partes.every(p => texto.indexOf(p) >= 0);
+    })
+    .sort((x, y) => (y.o.criado || '').localeCompare(x.o.criado || '') || (y.o.atualizado || '').localeCompare(x.o.atualizado || ''))
+    .slice(0, 30)
+    .map(x => ({id: x.o.id, data: x.c.data, hora: x.c.hora, atendente: x.o.atendente,
+                obra: x.o.endereco + (x.o.casa ? ' (' + x.o.casa + ')' : ''), total: x.o.total, semPreco: x.o.semPreco}));
+}
 
 /** [ZAYDA 1.4] Obras para as sugestões de endereço. A aba OBRAS desta planilha é preenchida
  *  automaticamente pelo Controle de Obras (não editar à mão). */
