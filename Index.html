@@ -39,6 +39,16 @@ header small{color:#5b7260!important;}
 .badge.aentregar{background:#eef2f5!important;color:#45596b!important}
 @media(max-width:580px){.entrega-row{grid-template-columns:28px 1fr}.entrega-row .qtd{grid-column:2}.entrega-fields{grid-template-columns:1fr}}
 @media print{#entregaPanel{display:none!important}}
+/* [ZAYDA 1.6] Situação da entrega no topo do pedido aberto */
+#faltaBox{margin-bottom:14px;font-size:13px}
+#faltaBox.aguardando{color:var(--grey)}
+#faltaBox.completo{background:#e7f5ea;color:#0b5d2a;border:1px solid #a9d8b6;border-radius:10px;padding:11px 14px;font-weight:700}
+#faltaBox.parcial{background:#fff3df;color:#80551a;border:1px solid #efb661;border-radius:10px;padding:12px 14px}
+#faltaBox .falta-tit{font-weight:800;font-size:14px;margin-bottom:6px}
+#faltaBox .falta-lin{display:grid;grid-template-columns:minmax(0,1fr) 90px 90px 90px;gap:8px;padding:6px 0;border-top:1px solid #f3d7a8}
+#faltaBox .falta-lin span:not(:first-child){text-align:right;white-space:nowrap}
+#faltaBox .falta-cab{font-size:11px;font-weight:700;border-top:0}
+@media (max-width:700px){#faltaBox .falta-lin{grid-template-columns:repeat(3,minmax(0,1fr))}#faltaBox .falta-lin span:first-child{grid-column:1/-1;font-weight:700}#faltaBox .falta-lin span:not(:first-child){text-align:left}#faltaBox .falta-cab{display:none}#faltaBox .falta-lin span[data-r]::before{content:attr(data-r) " "}}
 /* [ZAYDA 1.3] Assinatura de quem recebeu */
 .assin-box{margin-top:14px}
 .assin-wrap{position:relative;border:1.5px dashed #b9cdbf;border-radius:10px;background:#fbfdfb;height:150px;touch-action:none}
@@ -120,6 +130,7 @@ header small{color:#5b7260!important;}
 <div class="topbar"><span class="small" id="catalogmeta">Carregando catálogo...</span><div class="btn-row"><button class="secondary" type="button" onclick="openById()">Abrir solicitação</button><button class="secondary" type="button" onclick="resetForm()">Nova solicitação</button></div></div>
 <div id="message" class="message"></div><div class="wrap">
 <main>
+<div id="faltaBox" role="status" hidden></div><!-- [ZAYDA 1.6] situação da entrega do pedido aberto -->
 <section class="panel"><h2>1. Identificação e entrega <span class="badge" id="orderBadge">Novo pedido</span></h2><div class="fields">
 <div><label for="atendente">Nome do(a) atendente *</label><input id="atendente" required autocomplete="name" placeholder="Quem está atendendo"></div>
 <div><label for="entregador">Nome(s) do(s) entregador(es) *</label><input id="entregador" required placeholder="Ex.: Carlos e João"></div>
@@ -258,7 +269,18 @@ function printRelation() {
 const fmtQ=n=>new Intl.NumberFormat('pt-BR',{maximumFractionDigits:3}).format(Number(n)||0);
 function hojeLocal(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function carregarEntrega(id){google.script.run.withSuccessHandler(p=>{if(p.id!==currentOrder)return;itensPedido=p.itens;renderEntrega();}).withFailureHandler(err).getPedido(id);}
-function renderEntrega(){const panel=document.getElementById('entregaPanel');
+// [ZAYDA 1.6] Quadro no topo do pedido aberto: aguardando, parcial (com o que falta) ou completo. Some sem pedido aberto.
+function renderFalta(){const box=document.getElementById('faltaBox');
+ if(!currentOrder||!itensPedido.length){box.hidden=true;box.className='';box.innerHTML='';return;}
+ const falta=it=>Math.max(0,Math.round((Number(it.quantidade)-Number(it.entregue||0))*1000)/1000);
+ const pend=itensPedido.filter(it=>falta(it)>0),algum=itensPedido.some(it=>Number(it.entregue||0)>0),n=itensPedido.length;
+ box.hidden=false;
+ if(!pend.length){box.className='completo';box.textContent='Entregue completo';return;}
+ if(!algum){box.className='aguardando';box.textContent='Aguardando entrega';return;}
+ box.className='parcial';
+ box.innerHTML=`<div class="falta-tit">Entrega parcial: ${pend.length===1?'falta':'faltam'} ${pend.length} de ${n} ${n===1?'material':'materiais'}</div><div class="falta-lin falta-cab"><span>Material</span><span>Pedido</span><span>Entregue</span><span>Falta</span></div>`+
+  pend.map(it=>{const u=esc(it.unidade);return `<div class="falta-lin"><span>${esc(it.nome)}</span><span data-r="Pedido:">${fmtQ(it.quantidade)} ${u}</span><span data-r="Entregue:">${fmtQ(it.entregue)} ${u}</span><span data-r="Falta:"><strong>${fmtQ(falta(it))} ${u}</strong></span></div>`;}).join('');}
+function renderEntrega(){renderFalta();const panel=document.getElementById('entregaPanel');
  if(!currentOrder||!itensPedido.length){panel.hidden=true;return;}panel.hidden=false;
  const falta=it=>Math.max(0,Math.round((Number(it.quantidade)-Number(it.entregue||0))*1000)/1000);
  const algum=itensPedido.some(it=>Number(it.entregue||0)>0),tudo=itensPedido.every(it=>falta(it)===0);

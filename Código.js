@@ -5,6 +5,7 @@
  * Versão 1.3 (29/10/2026): nome e assinatura de quem recebeu, marcados com [ZAYDA 1.3].
  * Versão 1.4 (29/10/2026): lista de obras para escolher o endereço e ponto de referência, marcados com [ZAYDA 1.4].
  * Versão 1.5 (30/10/2026): busca de pedidos em "Últimas solicitações", marcada com [ZAYDA 1.5].
+ * Versão 1.6 (05/11/2026): quanto falta entregar ao abrir um pedido, marcado com [ZAYDA 1.6].
  * O restante está igual ao original.
  * Instale este script dentro da planilha fornecida: Extensões > Apps Script.
  * DEPLOY: só permita contas Google da empresa / lista aprovada.
@@ -119,7 +120,7 @@ function getPedido(id) {
     quantidade:Number(r[6]),preco:dinheiro_(r[7],true)
   }));
   const entregue=entreguePorSku_(found.id); // [ZAYDA 1.2]
-  itens.forEach(it=>{it.entregue=entregue[it.sku]||0;});
+  itens.forEach(it=>{it.entregue=entregue[it.sku]||0;it.falta=Math.max(0,Math.round((it.quantidade-it.entregue)*1000)/1000);}); // [ZAYDA 1.6] falta
   return {...found,itens};
 }
 
@@ -146,7 +147,7 @@ function entreguePorSku_(pedidoId) {
   const sh = abaEntregas_(false), out = {};
   if (!sh || sh.getLastRow() < 2) return out;
   sh.getRange(2,1,sh.getLastRow()-1,7).getValues().forEach(r=>{
-    if (String(r[1])===pedidoId) { const sku=String(r[3]); out[sku]=(out[sku]||0)+(Number(r[6])||0); }
+    if (String(r[0]).indexOf('ENT-')===0 && String(r[1])===pedidoId) { const sku=String(r[3]); out[sku]=(out[sku]||0)+(Number(r[6])||0); } // [ZAYDA 1.6] só IDs ENT-
   });
   return out;
 }
