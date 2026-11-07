@@ -6,6 +6,7 @@
  * Versão 1.4 (29/10/2026): lista de obras para escolher o endereço e ponto de referência, marcados com [ZAYDA 1.4].
  * Versão 1.5 (30/10/2026): busca de pedidos em "Últimas solicitações", marcada com [ZAYDA 1.5].
  * Versão 1.6 (05/11/2026): quanto falta entregar ao abrir um pedido, marcado com [ZAYDA 1.6].
+ * Versão 1.7 (07/11/2026): pedido entregue travado, última entrega e situação na lista de pedidos, marcados com [ZAYDA 1.7].
  * O restante está igual ao original.
  * Instale este script dentro da planilha fornecida: Extensões > Apps Script.
  * DEPLOY: só permita contas Google da empresa / lista aprovada.
@@ -107,8 +108,9 @@ function ultimos_() {
 }
 
 function recentes_() {
-  return Object.values(ultimos_()).sort((a,b)=>b.atualizado.localeCompare(a.atualizado)).slice(0,30)
-    .map(o=>({id:o.id,atendente:o.atendente,casa:o.casa,total:o.total,semPreco:o.semPreco,atualizado:o.atualizado}));
+  const lista=Object.values(ultimos_()).sort((a,b)=>b.atualizado.localeCompare(a.atualizado)).slice(0,200); // [ZAYDA 1.7] era 30: o botão Ver mais mostra de 10 em 10
+  const situacao=situacoes_(lista);
+  return lista.map(o=>({id:o.id,atendente:o.atendente,casa:o.casa,total:o.total,semPreco:o.semPreco,atualizado:o.atualizado,situacao:situacao[o.id]}));
 }
 
 function getPedido(id) {
@@ -122,7 +124,7 @@ function getPedido(id) {
   }));
   const entregue=entreguePorSku_(found.id); // [ZAYDA 1.2]
   itens.forEach(it=>{it.entregue=entregue[it.sku]||0;it.falta=Math.max(0,Math.round((it.quantidade-it.entregue)*1000)/1000);}); // [ZAYDA 1.6] falta
-  return {...found,itens};
+  return {...found,itens,ultimaEntrega:ultimaEntrega_(found.id)}; // [ZAYDA 1.7] última entrega
 }
 
 /* ======================= [ZAYDA 1.2] CONFIRMAÇÃO DE ENTREGA ======================= */
@@ -258,6 +260,21 @@ function savePedido(payload) {
     });
     if(semPreco.length) throw new Error('Informe o preço dos materiais a cotar antes de salvar: '+semPreco.join(', '));
     total=Math.round(total*100)/100;
+    // [ZAYDA 1.7] Item já entregue: sem a confirmação de nova revisão, não pode sair do pedido, ficar abaixo do entregue nem mudar de preço.
+    // Item entregue sem preço pode receber o preço: sem isso, o pedido nunca mais poderia ser salvo.
+    if(old && payload.confirmaNovaRevisao!==true){
+      const entregue=entreguePorSku_(id), novos={}, problemas=[];
+      parsed.forEach(it=>{novos[it.sku]=it;});
+      registros_('itens').filter(r=>String(r[0])===id && Number(r[1])===old.revisao).forEach(r=>{
+        const sku=String(r[2]), ent=entregue[sku]||0;
+        if(ent<=0) return;
+        const nome=String(r[3]||sku), novo=novos[sku], precoAntes=dinheiro_(r[7],true);
+        if(!novo){problemas.push(nome+': já entregue, não pode ser removido');return;}
+        if(novo.qtd<ent-1e-9) problemas.push(nome+': quantidade abaixo do já entregue ('+ent+')');
+        if(precoAntes!==null && precoAntes>0 && Math.abs(novo.preco-precoAntes)>1e-6) problemas.push(nome+': já entregue, o preço não pode mudar');
+      });
+      if(problemas.length) throw new Error('Este pedido tem material já entregue. '+problemas.join('; ')+'.');
+    }
     const now=Utilities.formatDate(new Date(),FUSO_ZAYDA,'yyyy-MM-dd HH:mm:ss');
     const created=old?old.criado:now;
     const status=missing?'PENDENTE DE COTACAO':'REGISTRADO';
@@ -273,6 +290,38 @@ function savePedido(payload) {
 }
 
 function recentesPublicos() { auth_(); return recentes_(); }
+
+/** [ZAYDA 1.7] Situação de cada pedido da lista (Entregue, Parcial ou A entregar), só lendo ITENS_PEDIDO e ENTREGAS.
+ *  Mesma regra do quadro no topo do pedido aberto. */
+function situacoes_(lista) {
+  const revisao={}, itens={}, entregue={}, out={};
+  lista.forEach(o=>{revisao[o.id]=o.revisao;});
+  registros_('itens').forEach(r=>{const id=String(r[0]);if(revisao[id]===Number(r[1]))(itens[id]=itens[id]||[]).push({sku:String(r[2]),qtd:Number(r[6])||0});});
+  const sh=abaEntregas_(false);
+  if (sh && sh.getLastRow()>1) sh.getRange(2,1,sh.getLastRow()-1,7).getValues().forEach(r=>{
+    if (String(r[0]).indexOf('ENT-')!==0) return;
+    const k=String(r[1])+'|'+String(r[3]);entregue[k]=(entregue[k]||0)+(Number(r[6])||0);
+  });
+  lista.forEach(o=>{
+    const its=itens[o.id]||[], ent=it=>entregue[o.id+'|'+it.sku]||0;
+    const falta=its.filter(it=>Math.round((it.qtd-ent(it))*1000)/1000>0).length, algum=its.some(it=>ent(it)>0);
+    out[o.id]=its.length&&!falta?'Entregue':algum?'Parcial':'A entregar';
+  });
+  return out;
+}
+
+/** [ZAYDA 1.7] Última entrega registrada do pedido, para o cabeçalho: data da entrega, quando foi registrada e quem recebeu. */
+function ultimaEntrega_(pedidoId) {
+  const sh=abaEntregas_(false);
+  if (!sh || sh.getLastRow()<2) return null;
+  let ultima=null;
+  sh.getRange(2,1,sh.getLastRow()-1,Math.min(12,sh.getMaxColumns())).getValues().forEach(r=>{
+    if (String(r[0]).indexOf('ENT-')!==0 || String(r[1])!==pedidoId) return;
+    const registrado=dataTexto_(r[9]);
+    if (!ultima || registrado>=ultima.registrado) ultima={data:dataTexto_(r[7]).slice(0,10),registrado,recebidoPor:String(r[11]||'')};
+  });
+  return ultima;
+}
 
 /** [ZAYDA 1.5] Busca pedidos (só a revisão mais recente) por parte do código, atendente, entregador,
  *  obra/endereço, casa ou data (dd/mm ou dd/mm/aaaa). Ignora acentos e maiúsculas; todas as palavras
