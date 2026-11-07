@@ -239,7 +239,7 @@ function savePedido(payload) {
     const referencia=safeString_(payload.referencia,300,'Ponto de referência',false); // [ZAYDA 1.4]
     if(!Array.isArray(payload.itens) || !payload.itens.length || payload.itens.length>MAX_ITENS) throw new Error('Selecione de 1 a '+MAX_ITENS+' materiais.');
     const catalogo=catalogo_(); const bySku={};catalogo.forEach(p=>bySku[p.sku]=p);
-    const seen=new Set(), parsed=[];let total=0,missing=0;
+    const seen=new Set(), parsed=[], semPreco=[];let total=0,missing=0;
     payload.itens.forEach((it,idx)=>{
       const sku=safeString_(it.sku,60,'SKU',true);
       const product=bySku[sku];
@@ -250,12 +250,13 @@ function savePedido(payload) {
       if(qtd===null||qtd<=0||qtd>100000||Math.abs(Math.round(qtd*1000)-qtd*1000)>1e-7) throw new Error('Quantidade inválida para '+product.produto);
       // O preço editado é registrado como cotação da solicitação, não altera o catálogo.
       const preco=dinheiro_(it.preco,true);
-      if(preco!==null && (preco<0||preco>10000000))throw new Error('Preço inválido: '+product.produto);
-      if(preco===null)missing++;
+      if(preco===null||preco<=0){semPreco.push(product.produto);return;}
+      if(preco>10000000)throw new Error('Preço inválido: '+product.produto);
       const subtotal=preco===null?null:Math.round(qtd*preco*100)/100;
       if(subtotal!==null) total+=subtotal;
       parsed.push({sku,product,qtd,preco,subtotal});
     });
+    if(semPreco.length) throw new Error('Informe o preço dos materiais a cotar antes de salvar: '+semPreco.join(', '));
     total=Math.round(total*100)/100;
     const now=Utilities.formatDate(new Date(),FUSO_ZAYDA,'yyyy-MM-dd HH:mm:ss');
     const created=old?old.criado:now;
