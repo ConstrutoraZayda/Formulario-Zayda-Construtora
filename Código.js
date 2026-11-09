@@ -8,6 +8,7 @@
  * Versão 1.6 (05/11/2026): quanto falta entregar ao abrir um pedido, marcado com [ZAYDA 1.6].
  * Versão 1.7 (07/11/2026): pedido entregue travado, última entrega e situação na lista de pedidos, marcados com [ZAYDA 1.7].
  * Versão 1.8 (09/11/2026): pedido aberto na hora por um índice carregado antes, marcado com [ZAYDA 1.8].
+ * Versão 1.9 (09/11/2026): pedido salvo não muda mais, chave contra salvamento duplicado, cancelar/encerrar e textos que viravam data, marcados com [ZAYDA 1.9].
  * O restante está igual ao original.
  * Instale este script dentro da planilha fornecida: Extensões > Apps Script.
  * DEPLOY: só permita contas Google da empresa / lista aprovada.
@@ -35,6 +36,16 @@ function registros_(key) {
 function dataTexto_(v) {
   if (v instanceof Date && !isNaN(v)) return Utilities.formatDate(v, FUSO_ZAYDA, 'yyyy-MM-dd HH:mm:ss');
   return String(v || '');
+}
+
+/** [ZAYDA 1.9] Campo digitado que a planilha transformou em hora ou data ("09:00", "10/11"): volta ao texto,
+ *  nunca "Sat Dec 30 1899 ...". Hora sozinha a planilha guarda no dia 30/12/1899. */
+function textoCelula_(v) {
+  if (v instanceof Date && !isNaN(v)) {
+    return Utilities.formatDate(v, FUSO_ZAYDA, 'yyyy-MM-dd') === '1899-12-30'
+      ? Utilities.formatDate(v, FUSO_ZAYDA, 'HH:mm') : Utilities.formatDate(v, FUSO_ZAYDA, 'dd/MM/yyyy');
+  }
+  return String(v === null || v === undefined ? '' : v);
 }
 
 function doGet() {
@@ -121,7 +132,7 @@ function getPedido(id) {
   }));
   const entregue=entreguePorSku_(found.id); // [ZAYDA 1.2]
   itens.forEach(it=>{it.entregue=entregue[it.sku]||0;it.falta=Math.max(0,Math.round((it.quantidade-it.entregue)*1000)/1000);}); // [ZAYDA 1.6] falta
-  return {...found,itens,ultimaEntrega:ultimaEntrega_(found.id)}; // [ZAYDA 1.7] última entrega
+  return {...found,itens,ultimaEntrega:ultimaEntrega_(found.id),cancelamento:cancelamentoDe_(found.id)}; // [ZAYDA 1.7] última entrega · [ZAYDA 1.9] cancelado/encerrado
 }
 
 /* ======================= [ZAYDA 1.2] CONFIRMAÇÃO DE ENTREGA ======================= */
@@ -163,6 +174,8 @@ function concluirEntrega(payload) {
     const found=ultimos_()[id];
     if (!found) throw new Error('Solicitação não encontrada.');
     if (Number(payload.revisao)!==found.revisao) throw new Error('Este pedido foi alterado depois de aberto. Reabra-o antes de confirmar a entrega.');
+    const fechado=cancelamentoDe_(found.id); // [ZAYDA 1.9]
+    if (fechado) throw new Error('Este pedido foi '+(fechado.tipo==='CANCELADO'?'cancelado':'encerrado')+' em '+dataBrCurta_(fechado.dataHora)+'.');
     const data=String(payload.data||'');
     const hoje=Utilities.formatDate(new Date(),FUSO_ZAYDA,'yyyy-MM-dd');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(data) || data>hoje || data<'2020-01-01') throw new Error('Informe uma data de entrega válida (não pode ser futura).');
@@ -197,6 +210,7 @@ function concluirEntrega(payload) {
     sh.getRange(ini,1,linhas.length,1).setNumberFormat('@');
     sh.getRange(ini,8,linhas.length,1).setNumberFormat('@');
     sh.getRange(ini,10,linhas.length,1).setNumberFormat('@');
+    sh.getRange(ini,11,linhas.length,2).setNumberFormat('@'); // [ZAYDA 1.9] observações e recebido por como texto
     sh.getRange(ini,1,linhas.length,CAB_ENTREGAS.length).setValues(linhas);
     s_('auditoria').appendRow([now,user.email,'ENTREGA',found.id,found.revisao,
       'Entrega de '+linhas.length+' item(ns) em '+data+', recebida por '+recebido+': '+linhas.map(l=>l[0]).join(', ')]);
@@ -224,13 +238,18 @@ function savePedido(payload) {
   const lock=LockService.getDocumentLock() || LockService.getScriptLock();
   if (!lock.tryLock(20000)) throw new Error('Sistema ocupado. Tente salvar novamente.');
   try {
-    const atual=ultimos_();
+    // [ZAYDA 1.9] Mesma tentativa chegando de novo (clique duplo, reenvio): não grava e devolve o resultado da primeira.
+    const chave=/^[A-Za-z0-9-]{8,80}$/.test(String(payload.chaveSalvar||''))?'ZAYDA_SALVAR_'+payload.chaveSalvar:'';
+    let cache=null;
+    if(chave){ try{ cache=CacheService.getScriptCache(); const feito=cache.get(chave); if(feito) return JSON.parse(feito); }catch(e){ cache=null; } }
+    // [ZAYDA 1.9] Só pedido novo: pedido salvo não pode ser alterado (sem revisões).
     const existingId=safeString_(payload.id,50,'ID',false);
-    const old=existingId?atual[existingId]:null;
-    if(existingId && !old) throw new Error('Solicitação para edição não encontrada.');
-    if(old && Number(payload.revisao)!==old.revisao) throw new Error('Este pedido foi alterado por outra pessoa. Reabra-o para não sobrescrever a revisão mais recente.');
-    const id=existingId || 'ZAYDA-'+Utilities.formatDate(new Date(),FUSO_ZAYDA,'yyyyMMdd')+'-'+Utilities.getUuid().substring(0,8).toUpperCase();
-    const rev=old?old.revisao+1:1;
+    if(existingId){
+      if(ultimos_()[existingId]) throw new Error('Este pedido já foi salvo e não pode ser alterado. Faça um novo pedido.');
+      throw new Error('Pedido inválido. Faça um novo pedido.');
+    }
+    const id='ZAYDA-'+Utilities.formatDate(new Date(),FUSO_ZAYDA,'yyyyMMdd')+'-'+Utilities.getUuid().substring(0,8).toUpperCase();
+    const rev=1;
     const atendente=safeString_(payload.atendente,120,'Nome do(a) atendente',true);
     const entregador=safeString_(payload.entregador,200,'Nome do(s) entregador(es)',true);
     const endereco=safeString_(payload.endereco,300,'Endereço de entrega',true);
@@ -258,33 +277,22 @@ function savePedido(payload) {
     });
     if(semPreco.length) throw new Error('Informe o preço dos materiais a cotar antes de salvar: '+semPreco.join(', '));
     total=Math.round(total*100)/100;
-    // [ZAYDA 1.7] Item já entregue: sem a confirmação de nova revisão, não pode sair do pedido, ficar abaixo do entregue nem mudar de preço.
-    // Item entregue sem preço pode receber o preço: sem isso, o pedido nunca mais poderia ser salvo.
-    if(old && payload.confirmaNovaRevisao!==true){
-      const entregue=entreguePorSku_(id), novos={}, problemas=[];
-      parsed.forEach(it=>{novos[it.sku]=it;});
-      registros_('itens').filter(r=>String(r[0])===id && Number(r[1])===old.revisao).forEach(r=>{
-        const sku=String(r[2]), ent=entregue[sku]||0;
-        if(ent<=0) return;
-        const nome=String(r[3]||sku), novo=novos[sku], precoAntes=dinheiro_(r[7],true);
-        if(!novo){problemas.push(nome+': já entregue, não pode ser removido');return;}
-        if(novo.qtd<ent-1e-9) problemas.push(nome+': quantidade abaixo do já entregue ('+ent+')');
-        if(precoAntes!==null && precoAntes>0 && Math.abs(novo.preco-precoAntes)>1e-6) problemas.push(nome+': já entregue, o preço não pode mudar');
-      });
-      if(problemas.length) throw new Error('Este pedido tem material já entregue. '+problemas.join('; ')+'.');
-    }
     const now=Utilities.formatDate(new Date(),FUSO_ZAYDA,'yyyy-MM-dd HH:mm:ss');
-    const created=old?old.criado:now;
+    const created=now;
     const status=missing?'PENDENTE DE COTACAO':'REGISTRADO';
     const pedidoRow=[[id,rev,created,now,user.email,atendente,entregador,endereco,casa,observacoes,total,missing,status,'FORMULARIO WEB',referencia]]; // [ZAYDA 1.4] coluna O: PONTO_REFERENCIA
-    const pSheet=s_('pedidos');pSheet.getRange(pSheet.getLastRow()+1,1,1,pedidoRow[0].length).setValues(pedidoRow);
+    const pSheet=s_('pedidos'), linhaP=pSheet.getLastRow()+1;
+    pSheet.getRange(linhaP,6,1,5).setNumberFormat('@'); pSheet.getRange(linhaP,15).setNumberFormat('@'); // [ZAYDA 1.9] texto, para "09:00" não virar hora
+    pSheet.getRange(linhaP,1,1,pedidoRow[0].length).setValues(pedidoRow);
     const itemRows=parsed.map(it=>[id,rev,it.sku,it.product.produto,it.product.categoria,it.product.unidade,it.qtd,it.preco,it.subtotal,it.preco===null?'SIM':'NAO',now]);
     const itSheet=s_('itens');itSheet.getRange(itSheet.getLastRow()+1,1,itemRows.length,itemRows[0].length).setValues(itemRows);
-    const aud=s_('auditoria');aud.appendRow([now,user.email,old?'REVISAO':'CRIACAO',id,rev,
-      'Registro '+(old?'editado':'criado')+' com '+parsed.length+' itens; total conhecido R$ '+total.toFixed(2)+'; '+missing+' item(ns) a cotar.']);
+    const aud=s_('auditoria');aud.appendRow([now,user.email,'CRIACAO',id,rev,
+      'Registro criado com '+parsed.length+' itens; total conhecido R$ '+total.toFixed(2)+'; '+missing+' item(ns) a cotar.']);
     SpreadsheetApp.flush();
     marcarVersaoPedidos_(); // [ZAYDA 1.8]
-    return {id,revisao:rev,status,total,semPreco:missing,itens:parsed.length,atualizado:now};
+    const resultado={id,revisao:rev,status,total,semPreco:missing,itens:parsed.length,atualizado:now};
+    if(cache) { try{ cache.put(chave, JSON.stringify(resultado), 600); }catch(e){} } // [ZAYDA 1.9] 10 minutos
+    return resultado;
   }finally{lock.releaseLock();}
 }
 
@@ -301,7 +309,9 @@ function situacoes_(lista) {
     if (String(r[0]).indexOf('ENT-')!==0) return;
     const k=String(r[1])+'|'+String(r[3]);entregue[k]=(entregue[k]||0)+(Number(r[6])||0);
   });
+  const canc=cancelamentos_(); // [ZAYDA 1.9]
   lista.forEach(o=>{
+    if (canc[o.id]) { out[o.id]=canc[o.id].tipo==='CANCELADO'?'Cancelado':'Encerrado'; return; }
     const its=itens[o.id]||[], ent=it=>entregue[o.id+'|'+it.sku]||0;
     const falta=its.filter(it=>Math.round((it.qtd-ent(it))*1000)/1000>0).length, algum=its.some(it=>ent(it)>0);
     out[o.id]=its.length&&!falta?'Entregue':algum?'Parcial':'A entregar';
@@ -317,7 +327,7 @@ function ultimaEntrega_(pedidoId) {
   sh.getRange(2,1,sh.getLastRow()-1,Math.min(12,sh.getMaxColumns())).getValues().forEach(r=>{
     if (String(r[0]).indexOf('ENT-')!==0 || String(r[1])!==pedidoId) return;
     const registrado=dataTexto_(r[9]);
-    if (!ultima || registrado>=ultima.registrado) ultima={data:dataTexto_(r[7]).slice(0,10),registrado,recebidoPor:String(r[11]||'')};
+    if (!ultima || registrado>=ultima.registrado) ultima={data:dataTexto_(r[7]).slice(0,10),registrado,recebidoPor:textoCelula_(r[11])};
   });
   return ultima;
 }
@@ -543,9 +553,9 @@ function integEstiloCabecalho_(sh, n) {
 const CHAVE_VERSAO_PEDIDOS = 'PEDIDOS_VERSAO';
 function registroPedido_(r) {
   return {id:String(r[0]||''), revisao:Number(r[1]||0),criado:dataTexto_(r[2]),atualizado:dataTexto_(r[3]),email:String(r[4]||''),
-    atendente:String(r[5]||''),entregador:String(r[6]||''),endereco:String(r[7]||''),casa:String(r[8]||''),
-    observacoes:String(r[9]||''),total:dinheiro_(r[10],false)||0,semPreco:Number(r[11]||0),status:String(r[12]||''),
-    referencia:String(r[14]||'')};
+    atendente:textoCelula_(r[5]),entregador:textoCelula_(r[6]),endereco:textoCelula_(r[7]),casa:textoCelula_(r[8]), // [ZAYDA 1.9] textoCelula_
+    observacoes:textoCelula_(r[9]),total:dinheiro_(r[10],false)||0,semPreco:Number(r[11]||0),status:String(r[12]||''),
+    referencia:textoCelula_(r[14])};
 }
 /** Entregue por SKU e última entrega, numa passada só (mesmas regras de entreguePorSku_ e ultimaEntrega_). */
 function resumoEntregas_(linhas, pedidoId) {
@@ -554,18 +564,18 @@ function resumoEntregas_(linhas, pedidoId) {
     if (String(r[0]).indexOf('ENT-') !== 0 || String(r[1]) !== pedidoId) return;
     const sku = String(r[3]); entregue[sku] = (entregue[sku] || 0) + (Number(r[6]) || 0);
     const registrado = dataTexto_(r[9]);
-    if (!ultima || registrado >= ultima.registrado) ultima = {data: dataTexto_(r[7]).slice(0, 10), registrado, recebidoPor: String(r[11] || '')};
+    if (!ultima || registrado >= ultima.registrado) ultima = {data: dataTexto_(r[7]).slice(0, 10), registrado, recebidoPor: textoCelula_(r[11])};
   });
   return {entregue, ultima};
 }
 /** Pedido completo a partir das linhas já lidas: o mesmo objeto que getPedido devolve. */
-function montarPedido_(found, linhasItens, ent) {
+function montarPedido_(found, linhasItens, ent, cancelamento) {
   const itens = linhasItens.filter(r => String(r[0]) === found.id && Number(r[1]) === found.revisao).map(r => ({
     sku:String(r[2]||''),nome:String(r[3]||''),categoria:String(r[4]||''),unidade:String(r[5]||''),
     quantidade:Number(r[6]),preco:dinheiro_(r[7],true)
   }));
   itens.forEach(it=>{it.entregue=ent.entregue[it.sku]||0;it.falta=Math.max(0,Math.round((it.quantidade-it.entregue)*1000)/1000);});
-  return {...found, itens, ultimaEntrega: ent.ultima};
+  return {...found, itens, ultimaEntrega: ent.ultima, cancelamento: cancelamento || null};
 }
 /** Uma leitura em bloco: da linha ini até a última, com ncols colunas (ou menos, se a aba tiver menos). */
 function blocoAba_(sh, ini, ncols) {
@@ -590,7 +600,8 @@ function getIndicePedidos() {
   blocoAba_(s_('itens'), 1, 8).forEach(r => { const k = String(r[0] || ''); if (atual[k]) (itensPorId[k] = itensPorId[k] || []).push(r); });
   const entPorId = {};
   blocoAba_(abaEntregas_(false), 2, 12).forEach(r => { const k = String(r[1]); if (atual[k]) (entPorId[k] = entPorId[k] || []).push(r); });
-  const pedidos = Object.keys(atual).map(id => montarPedido_(atual[id], itensPorId[id] || [], resumoEntregas_(entPorId[id] || [], id)));
+  const canc = cancelamentos_();
+  const pedidos = Object.keys(atual).map(id => montarPedido_(atual[id], itensPorId[id] || [], resumoEntregas_(entPorId[id] || [], id), canc[id]));
   return JSON.stringify({versao, pedidos});
 }
 function versaoPedidos_() {
@@ -618,4 +629,70 @@ function confAcesso_() {
     empresa: conf.NOME_EMPRESA || 'Zayda Construtora'};
   try { if (cache) cache.put(chave, JSON.stringify(v), 300); } catch (e) {}
   return v;
+}
+
+/* ======================= [ZAYDA 1.9] CANCELAR PEDIDO E ENCERRAR O QUE FALTA =======================
+ * Registro em CANCELAMENTOS (uma linha por pedido). PEDIDOS, ITENS_PEDIDO e ENTREGAS não são alterados. */
+const ABA_CANCEL = 'CANCELAMENTOS';
+const CAB_CANCEL = ['PEDIDO_ID','TIPO','DATA_HORA','EMAIL_LOGIN','MOTIVO','ITENS_NAO_ENTREGUES'];
+function abaCancelamentos_(criar) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(ABA_CANCEL);
+  if (!sh && criar) {
+    sh = ss.insertSheet(ABA_CANCEL);
+    sh.getRange(1,1,1,CAB_CANCEL.length).setValues([CAB_CANCEL]).setFontWeight('bold').setBackground('#005f2a').setFontColor('#ffffff');
+    sh.setFrozenRows(1);
+    sh.protect().setDescription('Gravada pelo formulário (cancelar e encerrar pedido). Não editar.').setWarningOnly(true);
+  }
+  return sh;
+}
+/** Pedido cancelado ou encerrado, por código: {tipo, dataHora, email, motivo, naoEntregues}. Vale a primeira linha de cada pedido. */
+function cancelamentos_() {
+  const out = {};
+  blocoAba_(abaCancelamentos_(false), 2, 6).forEach(r => {
+    const id = String(r[0] || '').trim();
+    if (!id || out[id]) return;
+    out[id] = {tipo: String(r[1] || '').trim().toUpperCase() === 'ENCERRADO' ? 'ENCERRADO' : 'CANCELADO', dataHora: dataTexto_(r[2]),
+      email: String(r[3] || ''), motivo: textoCelula_(r[4]), naoEntregues: textoCelula_(r[5])};
+  });
+  return out;
+}
+function cancelamentoDe_(id) { return cancelamentos_()[id] || null; }
+function dataBrCurta_(t) { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(t || '')); return m ? m[3] + '/' + m[2] + '/' + m[1] : String(t || ''); }
+function cancelarPedido(id, motivo, chave) { return fecharPedido_('CANCELADO', id, motivo, chave); }
+function encerrarPedido(id, motivo, chave) { return fecharPedido_('ENCERRADO', id, motivo, chave); }
+function fecharPedido_(tipo, idPedido, motivoTxt, chaveTxt) {
+  const user = auth_();
+  const lock = LockService.getDocumentLock() || LockService.getScriptLock();
+  if (!lock.tryLock(20000)) throw new Error('Sistema ocupado. Tente novamente.');
+  try {
+    const chave = /^[A-Za-z0-9-]{8,80}$/.test(String(chaveTxt || '')) ? 'ZAYDA_FECHAR_' + chaveTxt : '';
+    let cache = null;
+    if (chave) { try { cache = CacheService.getScriptCache(); const feito = cache.get(chave); if (feito) return JSON.parse(feito); } catch (e) { cache = null; } }
+    const id = safeString_(idPedido, 50, 'Pedido', true);
+    const found = ultimos_()[id];
+    if (!found) throw new Error('Solicitação não encontrada.');
+    const motivo = safeString_(motivoTxt, 300, 'Motivo', true);
+    if (motivo.length < 5) throw new Error('Informe o motivo (mínimo 5 caracteres).');
+    const antes = cancelamentoDe_(id);
+    if (antes) throw new Error('Este pedido já foi ' + (antes.tipo === 'CANCELADO' ? 'cancelado' : 'encerrado') + ' em ' + dataBrCurta_(antes.dataHora) + '.');
+    const entregue = entreguePorSku_(id), algum = Object.keys(entregue).some(k => entregue[k] > 0);
+    const falta = registros_('itens').filter(r => String(r[0]) === id && Number(r[1]) === found.revisao)
+      .map(r => ({sku: String(r[2] || ''), nome: String(r[3] || ''), un: String(r[5] || ''), q: Math.round((Number(r[6]) - (entregue[String(r[2])] || 0)) * 1000) / 1000}))
+      .filter(x => x.q > 0);
+    if (tipo === 'CANCELADO' && algum) throw new Error('Este pedido já tem entrega registrada e não pode ser cancelado. Use "Encerrar o que falta".');
+    if (tipo === 'ENCERRADO' && (!algum || !falta.length)) throw new Error('Só é possível encerrar um pedido parcial (com entrega registrada e material faltando).');
+    const naoEntregues = falta.map(x => x.sku + ' ' + x.nome + ' ' + String(x.q).replace('.', ',') + ' ' + x.un).join('; ');
+    const now = Utilities.formatDate(new Date(), FUSO_ZAYDA, 'yyyy-MM-dd HH:mm:ss');
+    const sh = abaCancelamentos_(true), linha = sh.getLastRow() + 1;
+    sh.getRange(linha, 1, 1, CAB_CANCEL.length).setNumberFormat('@'); // tudo como texto
+    sh.getRange(linha, 1, 1, CAB_CANCEL.length).setValues([[id, tipo, now, user.email, motivo, naoEntregues]]);
+    s_('auditoria').appendRow([now, user.email, tipo === 'CANCELADO' ? 'CANCELAMENTO' : 'ENCERRAMENTO', id, found.revisao,
+      (tipo === 'CANCELADO' ? 'Pedido cancelado' : 'Pedido encerrado; não entregue: ' + naoEntregues) + '. Motivo: ' + motivo]);
+    SpreadsheetApp.flush();
+    marcarVersaoPedidos_();
+    const resultado = {id, tipo, dataHora: now, email: user.email, motivo, naoEntregues};
+    if (cache) { try { cache.put(chave, JSON.stringify(resultado), 600); } catch (e) {} }
+    return resultado;
+  } finally { lock.releaseLock(); }
 }

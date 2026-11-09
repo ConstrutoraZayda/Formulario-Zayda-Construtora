@@ -135,6 +135,21 @@ header small{color:#5b7260!important;}
 .cartinputs input:disabled::placeholder{color:#63736b;-webkit-text-fill-color:#63736b}
 #message{margin-top:18px}
 body.travado .obralimpa,body.travado .obraseta,body.travado #voltarLista{display:none!important}
+/* [ZAYDA 1.9] Pedido salvo, cancelado ou encerrado */
+#avisoSalvo{margin:-6px 0 14px;font-size:12px;color:var(--grey)}
+#fechadoBox{margin-bottom:14px;padding:11px 14px;border-radius:10px;font-size:13px;font-weight:700;overflow-wrap:anywhere}
+#fechadoBox.cancelado{background:#fdecea;color:#9d2a15;border:1px solid #f3c1b8}
+#fechadoBox.encerrado{background:#eef2f5;color:#45596b;border:1px solid #d3dce3}
+.badge.cancelado{background:#fdecea!important;color:#9d2a15!important}
+.badge.encerrado{background:#eef2f5!important;color:#45596b!important}
+#cancelarBtn{color:#9d2a15}
+#confLista{margin:-6px 0 12px;font-size:13px;color:#193c28}
+#confLista ul{margin:6px 0 0;padding-left:20px}
+#confMotivoBox label{display:block;margin-bottom:5px}
+#confMotivo{width:100%;min-height:72px;font-size:16px}
+.conf-erro{margin-top:6px;color:var(--danger);font-size:12px;font-weight:700}
+.conf-erro[hidden]{display:none}
+.print-chip.fechado{background:#fdecea;color:#9d2a15;border-color:#f3c1b8;margin-left:2mm}
 .cartinputs{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 .cartinputs .qtdcampo{grid-column:1/-1}
 .qtdbox{display:flex;align-items:center;gap:6px}
@@ -146,6 +161,7 @@ body.travado .obralimpa,body.travado .obraseta,body.travado #voltarLista{display
 .qtdbox .un{font-size:13px;font-weight:700;color:#45596b;white-space:nowrap}
 .product .narel{color:#00642c;font-weight:700}
 .product button:disabled{opacity:.5;cursor:not-allowed}
+#saveBtn:disabled{opacity:.55;cursor:not-allowed;filter:none}
 .naosalvo{margin-bottom:8px;padding:8px 10px;border-radius:8px;background:#fff3df;color:#80551a;font-size:12px;font-weight:700}
 .naosalvo[hidden]{display:none}
 #pedidosBox{margin-top:0}
@@ -164,7 +180,7 @@ body.travado .obralimpa,body.travado .obraseta,body.travado #voltarLista{display
 <div class="topbar"><span class="small" id="catalogmeta">Carregando catálogo...</span><div class="btn-row"><button class="secondary" type="button" onclick="openById()">Abrir solicitação</button><button class="secondary" type="button" onclick="novoPedido()">Novo pedido</button></div></div>
 <div id="message" class="message"></div><div class="wrap">
 <main>
-<div id="faltaBox" role="status" hidden></div><!-- [ZAYDA 1.6] situação da entrega do pedido aberto -->
+<div id="fechadoBox" role="status" hidden></div><div id="faltaBox" role="status" hidden></div><p id="avisoSalvo" hidden>Pedido salvo não pode ser alterado. Se faltou algum material, faça um novo pedido.</p><!-- [ZAYDA 1.6] situação da entrega do pedido aberto -->
 <section class="panel"><h2>1. Identificação e entrega <span class="badge" id="orderBadge">Novo pedido</span></h2><div class="fields">
 <div><label for="atendente">Nome do(a) atendente *</label><input id="atendente" required autocomplete="name" placeholder="Quem está atendendo"></div>
 <div><label for="entregador">Nome(s) do(s) entregador(es) *</label><input id="entregador" required placeholder="Ex.: Carlos e João"></div>
@@ -185,51 +201,74 @@ body.travado .obralimpa,body.travado .obraseta,body.travado #voltarLista{display
 </section>
 <section class="panel searchpanel" id="painelBusca"><h2><span id="numBusca">2</span>. Pesquisar materiais</h2><div class="searchbox"><input id="busca" placeholder="Pesquisar nome, código ou categoria..." oninput="renderResults()" aria-label="Pesquisar produto"><select id="categoria" onchange="renderResults()"><option value="">Todas as categorias</option></select></div><div id="results" class="results"><div class="empty">Carregando...</div></div></section>
 </main>
-<aside class="sticky"><section class="panel"><h2>3. Relação dos materiais <span id="counter" class="badge">0 itens</span></h2><div id="cart" class="empty">Escolha os materiais pesquisando no catálogo.</div><div id="pending" class="warning" hidden></div><div class="total"><span>Subtotal com preços definidos</span><strong id="total">R$ 0,00</strong></div><div class="naosalvo" id="naoSalvo" role="status" hidden>Alterações não salvas</div><div class="btn-row actions"><button class="primary" id="saveBtn" type="button" onclick="save()">Salvar solicitação</button><button class="primary" id="editarBtn" type="button" onclick="pedirEdicao()" hidden>Editar (nova revisão)</button><button class="secondary" id="maisBtn" type="button" onclick="abrirBuscaMateriais()" hidden>Adicionar materiais</button><button class="secondary" type="button" onclick="printRelation()">Imprimir relação</button></div><p class="muted">O valor só soma os itens com preço preenchido. Produtos “A cotar” precisam de preço para salvar.</p></section><section class="panel recent" id="pedidosBox"><h2>Pedidos</h2><label for="buscaPedido">Buscar pedido</label><input id="buscaPedido" type="search" autocomplete="off" placeholder="Código, atendente, entregador, obra, casa ou data (dd/mm)"><div id="buscaResultados" class="muted" style="margin-top:8px"></div><div id="recentBox"><strong style="display:block;font-size:13px;margin-top:14px">Últimas solicitações</strong><div id="recentList" class="muted" style="margin-top:8px">Carregando...</div><button type="button" id="verMais" onclick="verMaisPedidos()" hidden>Ver mais</button></div></section></aside>
+<aside class="sticky"><section class="panel"><h2>3. Relação dos materiais <span id="counter" class="badge">0 itens</span></h2><div id="cart" class="empty">Escolha os materiais pesquisando no catálogo.</div><div id="pending" class="warning" hidden></div><div class="total"><span>Subtotal com preços definidos</span><strong id="total">R$ 0,00</strong></div><div class="naosalvo" id="naoSalvo" role="status" hidden>Alterações não salvas</div><div class="btn-row actions"><button class="primary" id="saveBtn" type="button" onclick="save()">Salvar solicitação</button><button class="secondary" id="cancelarBtn" type="button" onclick="pedirCancelamento()" hidden>Cancelar pedido</button><button class="secondary" id="encerrarBtn" type="button" onclick="pedirEncerramento()" hidden>Encerrar o que falta</button><button class="secondary" type="button" onclick="printRelation()">Imprimir relação</button></div><p class="muted">O valor só soma os itens com preço preenchido. Produtos “A cotar” precisam de preço para salvar.</p></section><section class="panel recent" id="pedidosBox"><h2>Pedidos</h2><label for="buscaPedido">Buscar pedido</label><input id="buscaPedido" type="search" autocomplete="off" placeholder="Código, atendente, entregador, obra, casa ou data (dd/mm)"><div id="buscaResultados" class="muted" style="margin-top:8px"></div><div id="recentBox"><strong style="display:block;font-size:13px;margin-top:14px">Últimas solicitações</strong><div id="recentList" class="muted" style="margin-top:8px">Carregando...</div><button type="button" id="verMais" onclick="verMaisPedidos()" hidden>Ver mais</button></div></section></aside>
 </div>
 <section id="printSheet" aria-label="Documento para impressão"></section>
-<div id="confFundo" hidden><div id="confCaixa" role="alertdialog" aria-modal="true" aria-labelledby="confTexto"><p id="confTexto"></p><div class="btn-row"><button class="secondary" id="confNao" type="button">Voltar</button><button class="primary" id="confSim" type="button">Continuar</button></div></div></div>
+<div id="confFundo" hidden><div id="confCaixa" role="alertdialog" aria-modal="true" aria-labelledby="confTexto"><p id="confTexto"></p><div id="confLista" hidden></div><div id="confMotivoBox" hidden><label for="confMotivo" id="confMotivoRot">Motivo</label><textarea id="confMotivo" maxlength="300" rows="3"></textarea><div class="conf-erro" id="confErro" role="alert" hidden></div></div><div class="btn-row"><button class="secondary" id="confNao" type="button">Voltar</button><button class="primary" id="confSim" type="button">Continuar</button></div></div></div>
 <script>
 let produtos=[], categories=[], cart=[],user=null,currentOrder='',rev=0,recentes=[],lastSavedSignature='',destacarPreco=false;
 let itensPedido=[]; // [ZAYDA 1.2] itens da revisão aberta, com quantidade já entregue
-/* [ZAYDA 1.7] edicaoLiberada: pedido entregue liberado depois da confirmação. maisMateriais: busca aberta em pedido ainda não entregue. */
-let edicaoLiberada=false,maisMateriais=false,ultimaEntrega=null,recVis=5;
+/* [ZAYDA 1.9] Pedido salvo é sempre somente leitura (sem revisões). salvando/fechando: chamada em andamento.
+   tentativa/tentFechar: a mesma chave para o mesmo conteúdo, contra clique duplo. cancelamento: registro de CANCELAMENTOS. */
+let salvando=false,tentativa={assin:'',chave:''},fechando=false,tentFechar={assin:'',chave:''},cancelamento=null,ultimaEntrega=null,recVis=5;
 const faltaItem=it=>Math.max(0,Math.round((Number(it.quantidade)-Number(it.entregue||0))*1000)/1000);
 const pedidoCompleto=()=>!!currentOrder&&itensPedido.length>0&&itensPedido.every(it=>faltaItem(it)===0);
-const pedidoTravado=()=>pedidoCompleto()&&!edicaoLiberada;
-/* O que pode mudar em cada item da relação. Item entregue sem preço continua com o preço liberado, para o pedido poder ser salvo. */
+const pedidoTravado=()=>!!currentOrder;
+const temEntrega=()=>!!ultimaEntrega||itensPedido.some(it=>Number(it.entregue||0)>0);
+/* O que pode mudar em cada item da relação: tudo no pedido novo; nada no pedido salvo. */
 function regraItem(it){const salvo=itensPedido.find(s=>s.sku===it.sku),ent=salvo?Number(salvo.entregue||0):0;
- if(!currentOrder||edicaoLiberada)return{qtd:true,preco:true,remover:true,min:1,ent};
- if(pedidoCompleto())return{qtd:false,preco:false,remover:false,min:1,ent};
- if(ent<=0)return{qtd:true,preco:true,remover:true,min:1,ent};
- return{qtd:faltaItem(salvo)>0,preco:!(Number(salvo.preco)>0),remover:false,min:Math.max(1,ent),ent};}
+ if(!currentOrder)return{qtd:true,preco:true,remover:true,min:1,ent};
+ return{qtd:false,preco:false,remover:false,min:1,ent};}
 function sujo(){const p=payload();if(currentOrder)return JSON.stringify(p)!==lastSavedSignature;return cart.length>0||[p.atendente,p.entregador,p.endereco,p.casa,p.referencia,p.observacoes].some(v=>String(v||'').trim());}
-function atualizarSujo(){document.getElementById('naoSalvo').hidden=!sujo();}
-function aplicarEstado(){const g=id=>document.getElementById(id),aberto=!!currentOrder,trav=pedidoTravado(),verBusca=!aberto||edicaoLiberada||maisMateriais;
+/* Salvar só existe no pedido novo. Em andamento: desativado com Salvando…. */
+function atualizarSujo(){const s=sujo(),b=document.getElementById('saveBtn');document.getElementById('naoSalvo').hidden=!s;
+ if(salvando){b.disabled=true;b.textContent='Salvando…';return;}
+ b.disabled=false;b.textContent='Salvar solicitação';}
+function aplicarEstado(){const g=id=>document.getElementById(id),aberto=!!currentOrder,trav=pedidoTravado(),falta=itensPedido.some(it=>faltaItem(it)>0);
  document.body.classList.toggle('travado',trav);
  ['atendente','entregador','obraBusca','endereco','casa','referencia','observacoes'].forEach(id=>{g(id).disabled=trav;});
- g('painelBusca').hidden=!verBusca;g('numBusca').textContent=aberto?'4':'2';
- g('saveBtn').hidden=trav;g('editarBtn').hidden=!trav;g('maisBtn').hidden=!aberto||trav||verBusca;
+ g('painelBusca').hidden=aberto;g('numBusca').textContent=aberto?'4':'2';g('saveBtn').hidden=aberto;g('avisoSalvo').hidden=!aberto;
+ // [ZAYDA 1.9] Cancelar: salvo, sem nenhuma entrega. Encerrar: parcial (tem entrega e falta algo). Nenhum dos dois se já foi cancelado/encerrado.
+ g('cancelarBtn').hidden=!aberto||!!cancelamento||!itensPedido.length||temEntrega();
+ g('encerrarBtn').hidden=!aberto||!!cancelamento||!temEntrega()||!falta;
+ g('cancelarBtn').disabled=g('encerrarBtn').disabled=fechando;
  atualizarSujo();}
 /* Confirmação na própria tela */
-let confFn=null,confVolta=null;
-function pedirConfirmacao(msg,sim,fn){const g=id=>document.getElementById(id);g('confTexto').textContent=msg;g('confSim').textContent=sim;confFn=fn;confVolta=document.activeElement;g('confFundo').hidden=false;g('confNao').focus();}
-function fecharConfirmacao(ok){const fn=confFn;confFn=null;document.getElementById('confFundo').hidden=true;if(confVolta&&confVolta.focus)confVolta.focus({preventScroll:true});confVolta=null;if(ok&&fn)fn();}
+let confFn=null,confVolta=null,confComMotivo=false;
+/* op.lista: HTML do que listar; op.motivo: rótulo do campo de motivo (obrigatório, mínimo 5 caracteres). */
+function pedirConfirmacao(msg,sim,fn,op){const g=id=>document.getElementById(id);op=op||{};g('confTexto').textContent=msg;g('confSim').textContent=sim;
+ g('confLista').innerHTML=op.lista||'';g('confLista').hidden=!op.lista;confComMotivo=!!op.motivo;g('confMotivoBox').hidden=!confComMotivo;g('confErro').hidden=true;
+ if(confComMotivo){g('confMotivoRot').textContent=op.motivo;g('confMotivo').value='';}
+ confFn=fn;confVolta=document.activeElement;g('confFundo').hidden=false;(confComMotivo?g('confMotivo'):g('confNao')).focus();}
+function fecharConfirmacao(ok){let motivo='';
+ if(ok&&confComMotivo){motivo=document.getElementById('confMotivo').value.trim();if(motivo.length<5){const e=document.getElementById('confErro');e.textContent='Informe o motivo (mínimo 5 caracteres).';e.hidden=false;document.getElementById('confMotivo').focus();return;}}
+ const fn=confFn;confFn=null;document.getElementById('confFundo').hidden=true;if(confVolta&&confVolta.focus)confVolta.focus({preventScroll:true});confVolta=null;if(ok&&fn)fn(motivo);}
 document.getElementById('confSim').onclick=()=>fecharConfirmacao(true);
 document.getElementById('confNao').onclick=()=>fecharConfirmacao(false);
 document.getElementById('confFundo').addEventListener('click',e=>{if(e.target.id==='confFundo')fecharConfirmacao(false);});
-document.addEventListener('keydown',e=>{if(document.getElementById('confFundo').hidden)return;if(e.key==='Escape'){fecharConfirmacao(false);return;}if(e.key==='Tab'){e.preventDefault();const a=document.getElementById('confSim'),b=document.getElementById('confNao');(document.activeElement===a?b:a).focus();}});
+document.addEventListener('keydown',e=>{if(document.getElementById('confFundo').hidden)return;if(e.key==='Escape'){fecharConfirmacao(false);return;}if(e.key==='Tab'){e.preventDefault();const l=[confComMotivo?document.getElementById('confMotivo'):null,document.getElementById('confNao'),document.getElementById('confSim')].filter(Boolean),i=l.indexOf(document.activeElement);l[(i+(e.shiftKey?l.length-1:1))%l.length].focus();}});
 function confirmarSaida(fn){if(sujo())pedirConfirmacao('Há alterações não salvas que serão perdidas. Deseja continuar?','Continuar sem salvar',fn);else fn();}
 function novoPedido(){confirmarSaida(resetForm);}
-function pedirEdicao(){pedirConfirmacao('Este pedido já foi entregue. Alterar quantidades ou preços muda o custo da obra. Continuar?','Continuar',()=>{edicaoLiberada=true;renderEntrega();});}
-function abrirBuscaMateriais(){maisMateriais=true;aplicarEstado();document.getElementById('painelBusca').scrollIntoView({behavior:'smooth',block:'start'});}
+/* [ZAYDA 1.9] Cancelar pedido (sem entrega) e Encerrar o que falta (parcial) */
+function pedirCancelamento(){if(!currentOrder||fechando)return;pedirConfirmacao('Cancelar o pedido '+currentOrder+'? Ele não poderá mais receber entregas.','Cancelar pedido',m=>fecharPedido('CANCELADO',m),{motivo:'Motivo do cancelamento'});}
+function pedirEncerramento(){if(!currentOrder||fechando)return;const f=itensPedido.filter(it=>faltaItem(it)>0);
+ pedirConfirmacao('O que já foi entregue continua valendo. O que falta será dado como não entregue.','Encerrar o que falta',m=>fecharPedido('ENCERRADO',m),
+  {motivo:'Motivo',lista:'<strong>O que falta:</strong><ul>'+f.map(it=>'<li>'+fmtQ(faltaItem(it))+' '+esc(it.unidade)+' · '+esc(it.nome)+'</li>').join('')+'</ul>'});}
+function fecharPedido(tipo,motivo){const id=currentOrder,assin=JSON.stringify([tipo,id,motivo]);if(tentFechar.assin!==assin)tentFechar={assin,chave:novaChave()};
+ fechando=true;aplicarEstado();notify(tipo==='CANCELADO'?'Cancelando o pedido…':'Encerrando o que falta…');
+ google.script.run.withSuccessHandler(r=>{fechando=false;tentFechar={assin:'',chave:''};
+   if(INDICE&&INDICE[id])guardarNoIndice(Object.assign(copia(INDICE[id]),{cancelamento:r}));
+   if(id===currentOrder){cancelamento=r;if(INDICE&&INDICE[id])PEDIDO_TELA=JSON.stringify(INDICE[id]);renderEntrega();}
+   notify(tipo==='CANCELADO'?'Pedido '+id+' cancelado.':'Pedido '+id+' encerrado. O que faltava ficou como não entregue.');
+   google.script.run.withSuccessHandler(rows=>{recentes=rows;renderRecent();}).recentesPublicos();})
+  .withFailureHandler(e=>{fechando=false;aplicarEstado();err(e);})[tipo==='CANCELADO'?'cancelarPedido':'encerrarPedido'](id,motivo,tentFechar.chave);}
 document.addEventListener('input',atualizarSujo);document.addEventListener('change',atualizarSujo);
 window.addEventListener('beforeunload',e=>{if(sujo()){e.preventDefault();e.returnValue='';}});
 const brl=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(n||0);
 const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 function notify(msg,error=false){const el=document.getElementById('message');el.textContent=msg;el.className='message'+(error?' error':'');el.style.display='block';el.scrollIntoView({behavior:'smooth',block:'nearest'});}
-function err(e){notify(e&&e.message?e.message:String(e),true);document.getElementById('saveBtn').disabled=false;}
+function err(e){notify(e&&e.message?e.message:String(e),true);atualizarSujo();}
 function boot(){google.script.run.withSuccessHandler(data=>{user=data.user;produtos=data.produtos;categories=data.categorias;recentes=data.recentes;document.getElementById('identity').textContent=user.email;
  document.getElementById('catalogmeta').textContent=`${produtos.length} produtos cadastrados • ${produtos.filter(p=>p.preco!==null).length} com preço de referência`;
  document.getElementById('categoria').innerHTML='<option value="">Todas as categorias</option>'+categories.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');renderResults();renderRecent();carregarObras();carregarIndice();
@@ -247,7 +286,7 @@ function resumoCart(){let total=0,missing=0;cart.forEach(it=>{if(!(it.preco>0))m
 function renderCart(){if(produtos.length)renderResults();document.getElementById('counter').textContent=cart.length+' itens';
  document.getElementById('cart').className=cart.length?'':'empty';
  document.getElementById('cart').innerHTML=cart.length?cart.map((it,i)=>{const sub=it.preco===null?null:it.quantidade*it.preco,r=regraItem(it);
- return `<div class="cartrow"><div class="itemtop"><div><strong>${esc(it.nome)}</strong><div class="muted">${esc(it.sku)} · ${esc(it.unidade)}${r.ent>0?' · entregue '+fmtQ(r.ent):''}</div></div>${r.remover?`<button class="plain" type="button" data-remove="${esc(it.sku)}" title="Retirar">Remover</button>`:''}</div><div class="cartinputs"><div class="qtdcampo"><label for="qtd${i}">Quantidade</label><div class="qtdbox"><button class="passo" type="button" data-passo="-1" data-i="${i}" aria-label="Diminuir 1"${!r.qtd||Number(it.quantidade)<=r.min?' disabled':''}>−</button><input id="qtd${i}" type="number" inputmode="decimal" min="${r.min}" step="0.001" value="${it.quantidade}" data-qty="${i}"${r.qtd?'':' disabled'}><button class="passo" type="button" data-passo="1" data-i="${i}" aria-label="Somar 1"${r.qtd?'':' disabled'}>+</button><span class="un">${esc(it.unidade)}</span></div></div><div><label>Preço unit. (R$)</label><input type="text" inputmode="decimal" autocomplete="off" aria-required="true" placeholder="A cotar" value="${it.preco===null?'':precoTexto(it.preco)}" data-price="${i}"${destacarPreco&&!(it.preco>0)?' class="faltando" aria-invalid="true"':''}${r.preco?'':' disabled'}></div><div class="subtotal">${sub===null?'A cotar':brl(sub)}</div></div></div>`;}).join(''):'Escolha os materiais pesquisando no catálogo.';
+ return `<div class="cartrow"><div class="itemtop"><div><strong>${esc(it.nome)}</strong><div class="muted">${esc(it.sku)} · ${esc(it.unidade)}${r.ent>0?' · entregue '+fmtQ(r.ent):''}</div></div>${r.remover?`<button class="plain" type="button" data-remove="${esc(it.sku)}" title="Retirar">Remover</button>`:''}</div><div class="cartinputs"><div class="qtdcampo"><label for="qtd${i}">Quantidade</label><div class="qtdbox">${r.qtd?`<button class="passo" type="button" data-passo="-1" data-i="${i}" aria-label="Diminuir 1"${Number(it.quantidade)<=r.min?' disabled':''}>−</button>`:''}<input id="qtd${i}" type="number" inputmode="decimal" min="${r.min}" step="0.001" value="${it.quantidade}" data-qty="${i}"${r.qtd?'':' disabled'}>${r.qtd?`<button class="passo" type="button" data-passo="1" data-i="${i}" aria-label="Somar 1">+</button>`:''}<span class="un">${esc(it.unidade)}</span></div></div><div><label>Preço unit. (R$)</label><input type="text" inputmode="decimal" autocomplete="off" aria-required="true" placeholder="A cotar" value="${it.preco===null?'':precoTexto(it.preco)}" data-price="${i}"${destacarPreco&&!(it.preco>0)?' class="faltando" aria-invalid="true"':''}${r.preco?'':' disabled'}></div><div class="subtotal">${sub===null?'A cotar':brl(sub)}</div></div></div>`;}).join(''):'Escolha os materiais pesquisando no catálogo.';
  document.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>removeItem(b.dataset.remove));
  document.querySelectorAll('[data-qty]').forEach(inp=>{const i=+inp.dataset.qty,r=regraItem(cart[i]);
   inp.oninput=()=>{const n=Number(inp.value);if(inp.value!==''&&Number.isFinite(n)&&n>=r.min){cart[i].quantidade=n;resumoCart();}};
@@ -257,10 +296,13 @@ function renderCart(){if(produtos.length)renderResults();document.getElementById
  document.querySelectorAll('[data-price]').forEach(inp=>inp.oninput=()=>{cart[+inp.dataset.price].preco=parsePrice(inp.value);resumoCart();});
  resumoCart();}
 function payload(){return {id:currentOrder,revisao:rev,atendente:document.getElementById('atendente').value,entregador:document.getElementById('entregador').value,endereco:document.getElementById('endereco').value,casa:document.getElementById('casa').value,referencia:document.getElementById('referencia').value,observacoes:document.getElementById('observacoes').value,itens:cart.map(it=>({sku:it.sku,quantidade:it.quantidade,preco:it.preco}))};}
-function save(){if(!user){notify('Sem login autorizado.',true);return;}document.querySelectorAll('[data-price]').forEach(inp=>{cart[+inp.dataset.price].preco=parsePrice(inp.value);});renderCart();const form=payload();if(edicaoLiberada)form.confirmaNovaRevisao=true;if(!form.atendente.trim()||!form.entregador.trim()||!form.endereco.trim()||!form.casa.trim()||!cart.length){notify('Preencha atendente, entregador, endereço, casa/obra e selecione ao menos um produto.',true);return;}const semPreco=cart.filter(i=>!(i.preco>0));if(semPreco.length){destacarPreco=true;renderCart();notify('Informe o preço dos materiais a cotar antes de salvar: '+semPreco.map(i=>i.nome).join(', '),true);return;}
- const btn=document.getElementById('saveBtn');btn.disabled=true;btn.textContent='Salvando...';
- google.script.run.withSuccessHandler(r=>{currentOrder=r.id;rev=r.revisao;lastSavedSignature=JSON.stringify(payload());edicaoLiberada=false;maisMateriais=false;aplicarEstado();document.getElementById('orderBadge').textContent=r.id+' · revisão '+r.revisao;btn.disabled=false;btn.textContent='Salvar alterações';notify('Solicitação '+r.id+' salva com sucesso (revisão '+r.revisao+'). '+(r.semPreco?r.semPreco+' itens pendentes de cotação.':'Valor total '+brl(r.total)+'.'));google.script.run.withSuccessHandler(rows=>{recentes=rows;renderRecent();}).recentesPublicos();carregarEntrega(r.id);}).withFailureHandler(e=>{btn.disabled=false;btn.textContent='Salvar solicitação';err(e);}).savePedido(form);}
-function resetForm(){abrindo='';PEDIDO_TELA='';PEND_ATUAL=null;entregaMexida=false;currentOrder='';rev=0;lastSavedSignature='';cart=[];destacarPreco=false;edicaoLiberada=false;maisMateriais=false;ultimaEntrega=null;['busca','categoria','buscaPedido','entregaData','entregaObs','recebidoPor'].forEach(id=>document.getElementById(id).value='');buscarPedido();['atendente','entregador','endereco','casa','referencia','observacoes'].forEach(id=>document.getElementById(id).value='');atualizarObra();document.getElementById('orderBadge').textContent='Novo pedido';document.getElementById('saveBtn').textContent='Salvar solicitação';renderCart();itensPedido=[];renderEntrega();notify('Novo formulário iniciado.');}
+function save(){if(salvando)return;if(!user){notify('Sem login autorizado.',true);return;}if(currentOrder)return;document.querySelectorAll('[data-price]').forEach(inp=>{cart[+inp.dataset.price].preco=parsePrice(inp.value);});renderCart();const form=payload();if(!form.atendente.trim()||!form.entregador.trim()||!form.endereco.trim()||!form.casa.trim()||!cart.length){notify('Preencha atendente, entregador, endereço, casa/obra e selecione ao menos um produto.',true);return;}const semPreco=cart.filter(i=>!(i.preco>0));if(semPreco.length){destacarPreco=true;renderCart();notify('Informe o preço dos materiais a cotar antes de salvar: '+semPreco.map(i=>i.nome).join(', '),true);return;}
+ /* [ZAYDA 1.9] Uma chave por tentativa; reenviar o mesmo conteúdo (ex.: depois de falha de conexão) usa a mesma chave. */
+ const assin=JSON.stringify(form);if(tentativa.assin!==assin)tentativa={assin,chave:novaChave()};form.chaveSalvar=tentativa.chave;
+ salvando=true;atualizarSujo();
+ google.script.run.withSuccessHandler(r=>{salvando=false;tentativa={assin:'',chave:''};currentOrder=r.id;rev=r.revisao;lastSavedSignature=JSON.stringify(payload());cancelamento=null;aplicarEstado();document.getElementById('orderBadge').textContent=r.id+' · revisão '+r.revisao;notify('Solicitação '+r.id+' salva com sucesso (revisão '+r.revisao+'). '+(r.semPreco?r.semPreco+' itens pendentes de cotação.':'Valor total '+brl(r.total)+'.'));google.script.run.withSuccessHandler(rows=>{recentes=rows;renderRecent();}).recentesPublicos();carregarEntrega(r.id);}).withFailureHandler(e=>{salvando=false;err(e);}).savePedido(form);}
+function novaChave(){try{if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();const a=new Uint8Array(16);crypto.getRandomValues(a);return Array.from(a,x=>x.toString(16).padStart(2,'0')).join('');}catch(e){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12);}}
+function resetForm(){abrindo='';PEDIDO_TELA='';PEND_ATUAL=null;entregaMexida=false;currentOrder='';rev=0;lastSavedSignature='';cart=[];destacarPreco=false;cancelamento=null;fechando=false;ultimaEntrega=null;['busca','categoria','buscaPedido','entregaData','entregaObs','recebidoPor'].forEach(id=>document.getElementById(id).value='');buscarPedido();['atendente','entregador','endereco','casa','referencia','observacoes'].forEach(id=>document.getElementById(id).value='');atualizarObra();document.getElementById('orderBadge').textContent='Novo pedido';document.getElementById('saveBtn').textContent='Salvar solicitação';renderCart();itensPedido=[];renderEntrega();notify('Novo formulário iniciado.');}
 function openById(id){const code=id||prompt('Digite o código da solicitação (ZAYDA-...)');if(!code)return;confirmarSaida(()=>abrirPedido(code));}
 /* [ZAYDA 1.8] Índice dos pedidos em memória: o pedido abre na hora, sem esperar o servidor.
    A versão (getVersaoPedidos) diz quando recarregar. localEm guarda quando um pedido foi atualizado aqui,
@@ -289,13 +331,13 @@ document.getElementById('entregaPanel').addEventListener('change',()=>{entregaMe
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')verificarVersao();});
 /* Monta a tela de um pedido. Na atualização em segundo plano mantém a edição liberada, a busca aberta e os campos da entrega. */
 function mostrarPedido(p,op){const atual=!!(op&&op.atualizacao);
- currentOrder=p.id;rev=p.revisao;destacarPreco=false;if(!atual){edicaoLiberada=false;maisMateriais=false;entregaMexida=false;}ultimaEntrega=p.ultimaEntrega||null;
+ currentOrder=p.id;rev=p.revisao;destacarPreco=false;if(!atual){entregaMexida=false;}ultimaEntrega=p.ultimaEntrega||null;cancelamento=p.cancelamento||null;
  ['atendente','entregador','endereco','casa','referencia','observacoes'].forEach(k=>document.getElementById(k).value=p[k]||'');atualizarObra();
  cart=p.itens.map(it=>({sku:it.sku,nome:it.nome,unidade:it.unidade,quantidade:it.quantidade,preco:it.preco}));
  document.getElementById('orderBadge').textContent=p.id+' · revisão '+rev;document.getElementById('saveBtn').textContent='Salvar alterações';
  renderCart();lastSavedSignature=JSON.stringify(payload());itensPedido=p.itens;if(!atual)document.getElementById('entregaData').value='';renderEntrega();
  PEDIDO_TELA=JSON.stringify(p);PEND_ATUAL=null;
- if(!atual)notify('Solicitação '+p.id+(pedidoTravado()?' aberta. Pedido entregue: somente leitura.':' aberta para edição.'));}
+ if(!atual)notify('Solicitação '+p.id+' aberta.');}
 function abrirPedido(code){const id=String(code||'').trim();
  if(INDICE&&INDICE[id]){abrindo='';mostrarPedido(copia(INDICE[id]));verificarVersao();return;}
  if(abrindo&&abrindo===id)return;abrindo=id;notify('Abrindo pedido…');
@@ -308,7 +350,7 @@ function buscarNoIndice(termo){const partes=norm(termo).trim().split(/\s+/).filt
   .filter(x=>{const texto=norm([x.o.id,x.o.atendente,x.o.entregador,x.o.endereco,x.o.casa,x.c.data,x.a.data].join(' | '));return partes.every(p=>texto.indexOf(p)>=0);})
   .sort((x,y)=>(y.o.criado||'').localeCompare(x.o.criado||'')||(y.o.atualizado||'').localeCompare(x.o.atualizado||'')).slice(0,30)
   .map(x=>({id:x.o.id,data:x.c.data,hora:x.c.hora,atendente:x.o.atendente,obra:x.o.endereco+(x.o.casa?' ('+x.o.casa+')':''),total:x.o.total,semPreco:x.o.semPreco}));}
-const SELO_PEDIDO={'Entregue':'badge','Parcial':'badge parcial','A entregar':'badge aentregar'};
+const SELO_PEDIDO={'Entregue':'badge','Parcial':'badge parcial','A entregar':'badge aentregar','Cancelado':'badge cancelado','Encerrado':'badge encerrado'};
 function renderRecent(){document.getElementById('recentList').innerHTML=recentes.length?recentes.slice(0,recVis).map(o=>`<button type="button" class="pedlin" data-open="${esc(o.id)}"><span class="pedtxt">${esc(o.id)} · ${esc(o.casa)} · ${brl(o.total)}</span>${SELO_PEDIDO[o.situacao]?`<span class="${SELO_PEDIDO[o.situacao]}">${esc(o.situacao)}</span>`:''}</button>`).join(''):'Nenhum pedido salvo ainda.';document.getElementById('verMais').hidden=recentes.length<=recVis;document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openById(b.dataset.open));}
 function verMaisPedidos(){recVis+=10;renderRecent();}
 // [ZAYDA 1.5] Busca de pedidos: código, atendente, entregador, obra/endereço, casa ou data (dd/mm).
@@ -350,7 +392,7 @@ function printRelation() {
       <div class="print-brand"><img class="print-real-logo" src="${document.getElementById('brandLogo').src}" alt="Zayda Construtora" /></div>
       <div class="print-doclabel"><span>RELAÇÃO DE MATERIAIS</span><strong>${esc(codigo)}</strong>
         <small>${confirmado?'Revisão '+rev+' · ':''}Emitido em ${esc(now)}</small>
-        <div class="print-chip${confirmado?'':' draft'}">${confirmado?(missing?'PENDENTE DE COTAÇÃO':'SOLICITAÇÃO REGISTRADA'):'PRÉVIA — ALTERAÇÕES NÃO SALVAS'}</div>
+        <div class="print-chip${confirmado?'':' draft'}">${confirmado?(missing?'PENDENTE DE COTAÇÃO':'SOLICITAÇÃO REGISTRADA'):'PRÉVIA — ALTERAÇÕES NÃO SALVAS'}</div>${currentOrder&&cancelamento?`<div class="print-chip fechado">${cancelamento.tipo==='CANCELADO'?'CANCELADO':'ENCERRADO'}</div>`:''}
       </div>
     </div>
     <div class="print-section-name">Dados da solicitação e entrega</div>
@@ -390,11 +432,15 @@ function printRelation() {
 /* [ZAYDA 1.2] Confirmação de entrega */
 const fmtQ=n=>new Intl.NumberFormat('pt-BR',{maximumFractionDigits:3}).format(Number(n)||0);
 function hojeLocal(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-function carregarEntrega(id){google.script.run.withSuccessHandler(p=>{guardarNoIndice(p);if(p.id!==currentOrder)return;itensPedido=p.itens;ultimaEntrega=p.ultimaEntrega||null;PEDIDO_TELA=JSON.stringify(p);renderEntrega();}).withFailureHandler(err).getPedido(id);}
+function carregarEntrega(id){google.script.run.withSuccessHandler(p=>{guardarNoIndice(p);if(p.id!==currentOrder)return;itensPedido=p.itens;ultimaEntrega=p.ultimaEntrega||null;cancelamento=p.cancelamento||null;PEDIDO_TELA=JSON.stringify(p);renderEntrega();}).withFailureHandler(err).getPedido(id);}
 // [ZAYDA 1.6] Quadro no topo do pedido aberto: aguardando, parcial (com o que falta) ou completo. Some sem pedido aberto.
 /* Data de quem registrou no mesmo dia vem com a hora; entrega lançada em outro dia mostra só a data da entrega, porque a hora dela não é conhecida. */
 function textoEntregue(){const u=ultimaEntrega;let t='Entregue completo';if(u&&u.data){t+=' · '+u.data.split('-').reverse().join('/');if(u.registrado&&u.registrado.slice(0,10)===u.data&&u.registrado.length>=16)t+=' às '+u.registrado.slice(11,16);}if(u&&u.recebidoPor)t+=' · recebido por '+u.recebidoPor;return t;}
-function renderFalta(){const box=document.getElementById('faltaBox');
+/* [ZAYDA 1.9] Faixa do pedido cancelado ou encerrado (no lugar da situação da entrega). */
+function textoFechado(c){const d=String(c.dataHora||''),q=d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4)+(d.length>=16?' às '+d.slice(11,16):'');
+ return (c.tipo==='CANCELADO'?'Cancelado em ':'Encerrado em ')+q+(c.email?' por '+c.email:'')+(c.tipo==='ENCERRADO'&&c.naoEntregues?' · Não entregue: '+c.naoEntregues:'')+' · Motivo: '+c.motivo;}
+function renderFalta(){const box=document.getElementById('faltaBox'),fb=document.getElementById('fechadoBox');
+ fb.hidden=!(currentOrder&&cancelamento);if(!fb.hidden){fb.className=cancelamento.tipo==='CANCELADO'?'cancelado':'encerrado';fb.textContent=textoFechado(cancelamento);box.hidden=true;box.className='';box.innerHTML='';return;}
  if(!currentOrder||!itensPedido.length){box.hidden=true;box.className='';box.innerHTML='';return;}
  const falta=it=>Math.max(0,Math.round((Number(it.quantidade)-Number(it.entregue||0))*1000)/1000);
  const pend=itensPedido.filter(it=>falta(it)>0),algum=itensPedido.some(it=>Number(it.entregue||0)>0);
@@ -405,7 +451,7 @@ function renderFalta(){const box=document.getElementById('faltaBox');
  box.innerHTML=`<div class="falta-tit">Entrega parcial · ${pend.length===1?'falta 1 item':'faltam '+pend.length+' itens'}</div><div class="falta-lin falta-cab"><span>Material</span><span>Pedido</span><span>Entregue</span><span>Falta</span></div>`+
   pend.map(it=>{const u=esc(it.unidade);return `<div class="falta-lin"><span>${esc(it.nome)}</span><span data-r="Pedido:">${fmtQ(it.quantidade)} ${u}</span><span data-r="Entregue:">${fmtQ(it.entregue)} ${u}</span><span data-r="Falta:"><strong>${fmtQ(falta(it))} ${u}</strong></span></div>`;}).join('');}
 function renderEntrega(){aplicarEstado();renderCart();renderFalta();const panel=document.getElementById('entregaPanel');
- if(!currentOrder||!itensPedido.length){panel.hidden=true;return;}panel.hidden=false;
+ if(!currentOrder||!itensPedido.length||cancelamento){panel.hidden=true;return;}panel.hidden=false;
  const falta=it=>Math.max(0,Math.round((Number(it.quantidade)-Number(it.entregue||0))*1000)/1000);
  const algum=itensPedido.some(it=>Number(it.entregue||0)>0),tudo=itensPedido.every(it=>falta(it)===0);
  const b=document.getElementById('entregaBadge');b.textContent=tudo?'Entregue':algum?'Entrega parcial':'A entregar';b.className='badge'+(tudo?'':algum?' parcial':' aentregar');
