@@ -9,6 +9,7 @@
  * Versão 1.7 (07/11/2026): pedido entregue travado, última entrega e situação na lista de pedidos, marcados com [ZAYDA 1.7].
  * Versão 1.8 (09/11/2026): pedido aberto na hora por um índice carregado antes, marcado com [ZAYDA 1.8].
  * Versão 1.9 (09/11/2026): pedido salvo não muda mais, chave contra salvamento duplicado, cancelar/encerrar e textos que viravam data, marcados com [ZAYDA 1.9].
+ * Versão 2.0 (09/11/2026): quem entregou cada entrega (ENTREGAS coluna N) e a lista de entregas do pedido, marcados com [ZAYDA 2.0].
  * O restante está igual ao original.
  * Instale este script dentro da planilha fornecida: Extensões > Apps Script.
  * DEPLOY: só permita contas Google da empresa / lista aprovada.
@@ -18,7 +19,8 @@ const SHEETS = Object.freeze({catalogo:'CATALOGO',pedidos:'PEDIDOS',itens:'ITENS
 // [ZAYDA 1.2] Aba criada automaticamente na 1ª confirmação de entrega.
 const ABA_ENTREGAS = 'ENTREGAS';
 const CAB_ENTREGAS = ['ENTREGA_ID','PEDIDO_ID','REVISAO','SKU','PRODUTO','UNIDADE','QTD_ENTREGUE','DATA_ENTREGA','EMAIL_LOGIN','REGISTRADO_EM','OBSERVACOES',
-                      'RECEBIDO_POR','ASSINATURA']; // [ZAYDA 1.3] duas últimas colunas
+                      'RECEBIDO_POR','ASSINATURA', // [ZAYDA 1.3]
+                      'ENTREGUE_POR']; // [ZAYDA 2.0] coluna N: quem levou o material
 const MAX_ITENS = 200;
 // [ZAYDA 1.1] Fuso fixo de São Paulo, independente do fuso configurado no projeto Apps Script.
 const FUSO_ZAYDA = 'America/Sao_Paulo';
@@ -130,9 +132,9 @@ function getPedido(id) {
     sku:String(r[2]||''),nome:String(r[3]||''),categoria:String(r[4]||''),unidade:String(r[5]||''),
     quantidade:Number(r[6]),preco:dinheiro_(r[7],true)
   }));
-  const entregue=entreguePorSku_(found.id); // [ZAYDA 1.2]
-  itens.forEach(it=>{it.entregue=entregue[it.sku]||0;it.falta=Math.max(0,Math.round((it.quantidade-it.entregue)*1000)/1000);}); // [ZAYDA 1.6] falta
-  return {...found,itens,ultimaEntrega:ultimaEntrega_(found.id),cancelamento:cancelamentoDe_(found.id)}; // [ZAYDA 1.7] última entrega · [ZAYDA 1.9] cancelado/encerrado
+  const ent=resumoEntregas_(blocoAba_(abaEntregas_(false),2,14),found.id,found.entregador); // [ZAYDA 2.0] entregue, última entrega e lista numa leitura só
+  itens.forEach(it=>{it.entregue=ent.entregue[it.sku]||0;it.falta=Math.max(0,Math.round((it.quantidade-it.entregue)*1000)/1000);}); // [ZAYDA 1.6] falta
+  return {...found,itens,ultimaEntrega:ent.ultima,cancelamento:cancelamentoDe_(found.id),entregas:ent.lista}; // [ZAYDA 1.7] última entrega · [ZAYDA 1.9] cancelado/encerrado
 }
 
 /* ======================= [ZAYDA 1.2] CONFIRMAÇÃO DE ENTREGA ======================= */
@@ -149,6 +151,11 @@ function abaEntregas_(criar) {
   // [ZAYDA 1.3] Aba criada na versão 1.2: acrescenta o cabeçalho das colunas novas.
   if (sh && criar && String(sh.getRange(1,12).getValue()||'')!=='RECEBIDO_POR') {
     sh.getRange(1,12,1,2).setValues([['RECEBIDO_POR','ASSINATURA']]).setFontWeight('bold').setBackground('#005f2a').setFontColor('#ffffff');
+  }
+  // [ZAYDA 2.0] Coluna N (ENTREGUE_POR) nas abas criadas antes desta versão.
+  if (sh && criar) {
+    if (sh.getMaxColumns() < 14) sh.insertColumnsAfter(sh.getMaxColumns(), 14 - sh.getMaxColumns());
+    if (String(sh.getRange(1,14).getValue()||'')!=='ENTREGUE_POR') sh.getRange(1,14).setValue('ENTREGUE_POR').setFontWeight('bold').setBackground('#005f2a').setFontColor('#ffffff');
   }
   return sh;
 }
@@ -182,6 +189,7 @@ function concluirEntrega(payload) {
     const obs=safeString_(payload.observacoes,300,'Observações da entrega',false);
     // [ZAYDA 1.3] Quem recebeu e assinatura (PNG pequeno em base64, guardado na própria planilha).
     const recebido=safeString_(payload.recebidoPor,120,'Recebido por',true);
+    const entreguePor=safeString_(payload.entreguePor,120,'Entregue por',true); // [ZAYDA 2.0]
     const assinatura=String(payload.assinatura||'');
     // [ZAYDA 1.4] Assinatura na tela deixou de ser obrigatória (agora é no papel); se vier, é conferida.
     if (assinatura && (!/^data:image\/png;base64,[A-Za-z0-9+\/=]+$/.test(assinatura) || assinatura.length<200)) throw new Error('Assinatura inválida.');
@@ -204,13 +212,14 @@ function concluirEntrega(payload) {
       if (qtd===null||qtd<=0||qtd>100000||Math.abs(Math.round(qtd*1000)-qtd*1000)>1e-7) throw new Error('Quantidade entregue inválida para '+p.produto);
       const seq=anteriores+linhas.length+1;
       const entregaId='ENT-'+found.id.slice(-8)+'-'+('0'+seq).slice(-2);
-      linhas.push([entregaId,found.id,found.revisao,sku,p.produto,p.unidade,qtd,data,user.email,now,obs,recebido,assinatura]);
+      linhas.push([entregaId,found.id,found.revisao,sku,p.produto,p.unidade,qtd,data,user.email,now,obs,recebido,assinatura,entreguePor]);
     });
     const ini=sh.getLastRow()+1;
     sh.getRange(ini,1,linhas.length,1).setNumberFormat('@');
     sh.getRange(ini,8,linhas.length,1).setNumberFormat('@');
     sh.getRange(ini,10,linhas.length,1).setNumberFormat('@');
     sh.getRange(ini,11,linhas.length,2).setNumberFormat('@'); // [ZAYDA 1.9] observações e recebido por como texto
+    sh.getRange(ini,14,linhas.length,1).setNumberFormat('@'); // [ZAYDA 2.0] entregue por como texto
     sh.getRange(ini,1,linhas.length,CAB_ENTREGAS.length).setValues(linhas);
     s_('auditoria').appendRow([now,user.email,'ENTREGA',found.id,found.revisao,
       'Entrega de '+linhas.length+' item(ns) em '+data+', recebida por '+recebido+': '+linhas.map(l=>l[0]).join(', ')]);
@@ -557,16 +566,19 @@ function registroPedido_(r) {
     observacoes:textoCelula_(r[9]),total:dinheiro_(r[10],false)||0,semPreco:Number(r[11]||0),status:String(r[12]||''),
     referencia:textoCelula_(r[14])};
 }
-/** Entregue por SKU e última entrega, numa passada só (mesmas regras de entreguePorSku_ e ultimaEntrega_). */
-function resumoEntregas_(linhas, pedidoId) {
-  const entregue = {}; let ultima = null;
+/** Entregue por SKU, última entrega e [ZAYDA 2.0] a lista de entregas, numa passada só (mesmas regras de entreguePorSku_ e ultimaEntrega_).
+ *  Entrega antiga sem ENTREGUE_POR (coluna N) usa o entregador do pedido. */
+function resumoEntregas_(linhas, pedidoId, entregadorPedido) {
+  const entregue = {}, lista = []; let ultima = null;
   linhas.forEach(r => {
     if (String(r[0]).indexOf('ENT-') !== 0 || String(r[1]) !== pedidoId) return;
     const sku = String(r[3]); entregue[sku] = (entregue[sku] || 0) + (Number(r[6]) || 0);
     const registrado = dataTexto_(r[9]);
     if (!ultima || registrado >= ultima.registrado) ultima = {data: dataTexto_(r[7]).slice(0, 10), registrado, recebidoPor: textoCelula_(r[11])};
+    lista.push({data: dataTexto_(r[7]).slice(0, 10), sku, material: String(r[4] || ''), quantidade: Number(r[6]) || 0, unidade: String(r[5] || ''),
+      recebidoPor: textoCelula_(r[11]), observacao: textoCelula_(r[10]), entreguePor: textoCelula_(r[13]) || String(entregadorPedido || '')});
   });
-  return {entregue, ultima};
+  return {entregue, ultima, lista};
 }
 /** Pedido completo a partir das linhas já lidas: o mesmo objeto que getPedido devolve. */
 function montarPedido_(found, linhasItens, ent, cancelamento) {
@@ -575,7 +587,7 @@ function montarPedido_(found, linhasItens, ent, cancelamento) {
     quantidade:Number(r[6]),preco:dinheiro_(r[7],true)
   }));
   itens.forEach(it=>{it.entregue=ent.entregue[it.sku]||0;it.falta=Math.max(0,Math.round((it.quantidade-it.entregue)*1000)/1000);});
-  return {...found, itens, ultimaEntrega: ent.ultima, cancelamento: cancelamento || null};
+  return {...found, itens, ultimaEntrega: ent.ultima, cancelamento: cancelamento || null, entregas: ent.lista};
 }
 /** Uma leitura em bloco: da linha ini até a última, com ncols colunas (ou menos, se a aba tiver menos). */
 function blocoAba_(sh, ini, ncols) {
@@ -599,9 +611,9 @@ function getIndicePedidos() {
   const itensPorId = {};
   blocoAba_(s_('itens'), 1, 8).forEach(r => { const k = String(r[0] || ''); if (atual[k]) (itensPorId[k] = itensPorId[k] || []).push(r); });
   const entPorId = {};
-  blocoAba_(abaEntregas_(false), 2, 12).forEach(r => { const k = String(r[1]); if (atual[k]) (entPorId[k] = entPorId[k] || []).push(r); });
+  blocoAba_(abaEntregas_(false), 2, 14).forEach(r => { const k = String(r[1]); if (atual[k]) (entPorId[k] = entPorId[k] || []).push(r); });
   const canc = cancelamentos_();
-  const pedidos = Object.keys(atual).map(id => montarPedido_(atual[id], itensPorId[id] || [], resumoEntregas_(entPorId[id] || [], id), canc[id]));
+  const pedidos = Object.keys(atual).map(id => montarPedido_(atual[id], itensPorId[id] || [], resumoEntregas_(entPorId[id] || [], id, atual[id].entregador), canc[id]));
   return JSON.stringify({versao, pedidos});
 }
 function versaoPedidos_() {

@@ -35,9 +35,10 @@ header small{color:#5b7260!important;}
 .entrega-row strong{font-size:13px}
 .entrega-row .ok{color:#00642c;font-weight:700;font-size:12px}
 .entrega-fields{display:grid;grid-template-columns:170px 1fr;gap:12px;margin-top:14px}
+.entrega-nomes{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px} /* [ZAYDA 2.0] recebido por e entregue por lado a lado */
 .badge.parcial{background:#fff3df!important;color:#80551a!important}
 .badge.aentregar{background:#eef2f5!important;color:#45596b!important}
-@media(max-width:580px){.entrega-row{grid-template-columns:28px 1fr}.entrega-row .qtd{grid-column:2}.entrega-fields{grid-template-columns:1fr}}
+@media(max-width:580px){.entrega-row{grid-template-columns:28px 1fr}.entrega-row .qtd{grid-column:2}.entrega-fields{grid-template-columns:1fr}.entrega-nomes{grid-template-columns:1fr}}
 @media print{#entregaPanel{display:none!important}}
 /* [ZAYDA 1.6] Situação da entrega no topo do pedido aberto */
 #faltaBox{margin-bottom:14px;font-size:13px}
@@ -195,7 +196,7 @@ body.travado .obralimpa,body.travado .obraseta,body.travado #voltarLista{display
 <p class="muted" style="margin:-6px 0 10px">Marque os itens que chegaram na obra e confira as quantidades. O custo entra sozinho no controle, pelo preço de cada item no pedido.</p>
 <div id="entregaItens"></div>
 <div class="entrega-fields"><div><label for="entregaData">Data da entrega *</label><input id="entregaData" type="date"></div><div><label for="entregaObs">Observações da entrega (opcional)</label><input id="entregaObs" placeholder="Ex.: faltou 1 saco, nota nº 123"></div></div>
-<div class="assin-box"><label for="recebidoPor">Recebido por (nome de quem recebeu na obra) *</label><input id="recebidoPor" autocomplete="name" placeholder="Nome completo">
+<div class="assin-box"><div class="entrega-nomes"><div><label for="recebidoPor">Recebido por (nome de quem recebeu na obra) *</label><input id="recebidoPor" autocomplete="name" placeholder="Nome completo"></div><div><label for="entreguePor">Entregue por (nome de quem levou o material) *</label><input id="entreguePor" autocomplete="off" placeholder="Nome de quem levou"></div></div>
 </div><!-- [ZAYDA 1.4] quadro de assinatura removido: a assinatura é feita no papel impresso -->
 <div class="btn-row" style="margin-top:14px"><button class="primary" id="entregaBtn" type="button" onclick="confirmarEntrega()">Marcar como entregue</button></div>
 </section>
@@ -302,7 +303,7 @@ function save(){if(salvando)return;if(!user){notify('Sem login autorizado.',true
  salvando=true;atualizarSujo();
  google.script.run.withSuccessHandler(r=>{salvando=false;tentativa={assin:'',chave:''};currentOrder=r.id;rev=r.revisao;lastSavedSignature=JSON.stringify(payload());cancelamento=null;aplicarEstado();document.getElementById('orderBadge').textContent=r.id+' · revisão '+r.revisao;notify('Solicitação '+r.id+' salva com sucesso (revisão '+r.revisao+'). '+(r.semPreco?r.semPreco+' itens pendentes de cotação.':'Valor total '+brl(r.total)+'.'));google.script.run.withSuccessHandler(rows=>{recentes=rows;renderRecent();}).recentesPublicos();carregarEntrega(r.id);}).withFailureHandler(e=>{salvando=false;err(e);}).savePedido(form);}
 function novaChave(){try{if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();const a=new Uint8Array(16);crypto.getRandomValues(a);return Array.from(a,x=>x.toString(16).padStart(2,'0')).join('');}catch(e){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12);}}
-function resetForm(){abrindo='';PEDIDO_TELA='';PEND_ATUAL=null;entregaMexida=false;currentOrder='';rev=0;lastSavedSignature='';cart=[];destacarPreco=false;cancelamento=null;fechando=false;ultimaEntrega=null;['busca','categoria','buscaPedido','entregaData','entregaObs','recebidoPor'].forEach(id=>document.getElementById(id).value='');buscarPedido();['atendente','entregador','endereco','casa','referencia','observacoes'].forEach(id=>document.getElementById(id).value='');atualizarObra();document.getElementById('orderBadge').textContent='Novo pedido';document.getElementById('saveBtn').textContent='Salvar solicitação';renderCart();itensPedido=[];renderEntrega();notify('Novo formulário iniciado.');}
+function resetForm(){abrindo='';PEDIDO_TELA='';PEND_ATUAL=null;entregaMexida=false;currentOrder='';rev=0;lastSavedSignature='';cart=[];destacarPreco=false;cancelamento=null;fechando=false;ultimaEntrega=null;['busca','categoria','buscaPedido','entregaData','entregaObs','recebidoPor','entreguePor'].forEach(id=>document.getElementById(id).value='');buscarPedido();['atendente','entregador','endereco','casa','referencia','observacoes'].forEach(id=>document.getElementById(id).value='');atualizarObra();document.getElementById('orderBadge').textContent='Novo pedido';document.getElementById('saveBtn').textContent='Salvar solicitação';renderCart();itensPedido=[];renderEntrega();notify('Novo formulário iniciado.');}
 function openById(id){const code=id||prompt('Digite o código da solicitação (ZAYDA-...)');if(!code)return;confirmarSaida(()=>abrirPedido(code));}
 /* [ZAYDA 1.8] Índice dos pedidos em memória: o pedido abre na hora, sem esperar o servidor.
    A versão (getVersaoPedidos) diz quando recarregar. localEm guarda quando um pedido foi atualizado aqui,
@@ -335,7 +336,7 @@ function mostrarPedido(p,op){const atual=!!(op&&op.atualizacao);
  ['atendente','entregador','endereco','casa','referencia','observacoes'].forEach(k=>document.getElementById(k).value=p[k]||'');atualizarObra();
  cart=p.itens.map(it=>({sku:it.sku,nome:it.nome,unidade:it.unidade,quantidade:it.quantidade,preco:it.preco}));
  document.getElementById('orderBadge').textContent=p.id+' · revisão '+rev;document.getElementById('saveBtn').textContent='Salvar alterações';
- renderCart();lastSavedSignature=JSON.stringify(payload());itensPedido=p.itens;if(!atual)document.getElementById('entregaData').value='';renderEntrega();
+ renderCart();lastSavedSignature=JSON.stringify(payload());itensPedido=p.itens;if(!atual){document.getElementById('entregaData').value='';document.getElementById('entreguePor').value=p.entregador||'';}renderEntrega();
  PEDIDO_TELA=JSON.stringify(p);PEND_ATUAL=null;
  if(!atual)notify('Solicitação '+p.id+' aberta.');}
 function abrirPedido(code){const id=String(code||'').trim();
@@ -487,13 +488,14 @@ function confirmarEntrega(){
  if(!itens.length){notify('Marque ao menos um item que chegou.',true);return;}
  const data=document.getElementById('entregaData').value;if(!data){notify('Informe a data da entrega.',true);return;}
  const recebidoPor=document.getElementById('recebidoPor').value.trim();if(!recebidoPor){notify('Informe o nome de quem recebeu o material.',true);return;}
+ const entreguePor=document.getElementById('entreguePor').value.trim();if(!entreguePor){notify('Informe o nome de quem entregou o material.',true);return;}
  const assinatura=''; // [ZAYDA 1.4] sem assinatura na tela
  if(!confirm('Confirmar a entrega de '+itens.length+' item(ns) do pedido '+currentOrder+' em '+data.split('-').reverse().join('/')+'?'))return;
  const btn=document.getElementById('entregaBtn');btn.disabled=true;btn.textContent='Registrando...';
- google.script.run.withSuccessHandler(r=>{btn.textContent='Marcar como entregue';itensPedido.forEach(it=>{it.entregue=r.entregue[it.sku]||0;});document.getElementById('entregaObs').value='';document.getElementById('recebidoPor').value='';limparAssinatura();renderEntrega();
+ google.script.run.withSuccessHandler(r=>{btn.textContent='Marcar como entregue';itensPedido.forEach(it=>{it.entregue=r.entregue[it.sku]||0;});document.getElementById('entregaObs').value='';document.getElementById('recebidoPor').value='';document.getElementById('entreguePor').value=document.getElementById('entregador').value;limparAssinatura();renderEntrega();
   entregaMexida=false;notify('Entrega registrada ('+r.registrados+' item(ns)). '+(r.pendentes?r.pendentes+' item(ns) ainda com saldo a entregar.':'Pedido totalmente entregue.'));carregarEntrega(currentOrder);google.script.run.withSuccessHandler(rows=>{recentes=rows;renderRecent();}).recentesPublicos();})
  .withFailureHandler(e=>{btn.disabled=false;btn.textContent='Marcar como entregue';err(e);})
- .concluirEntrega({id:currentOrder,revisao:rev,data:data,observacoes:document.getElementById('entregaObs').value,recebidoPor:recebidoPor,assinatura:assinatura,itens:itens});}
+ .concluirEntrega({id:currentOrder,revisao:rev,data:data,observacoes:document.getElementById('entregaObs').value,recebidoPor:recebidoPor,entreguePor:entreguePor,assinatura:assinatura,itens:itens});}
 
 boot();renderCart();
 
