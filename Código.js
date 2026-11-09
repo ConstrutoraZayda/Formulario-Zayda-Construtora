@@ -7,6 +7,7 @@
  * Versão 1.5 (30/10/2026): busca de pedidos em "Últimas solicitações", marcada com [ZAYDA 1.5].
  * Versão 1.6 (05/11/2026): quanto falta entregar ao abrir um pedido, marcado com [ZAYDA 1.6].
  * Versão 1.7 (07/11/2026): pedido entregue travado, última entrega e situação na lista de pedidos, marcados com [ZAYDA 1.7].
+ * Versão 1.8 (09/11/2026): pedido aberto na hora por um índice carregado antes, marcado com [ZAYDA 1.8].
  * O restante está igual ao original.
  * Instale este script dentro da planilha fornecida: Extensões > Apps Script.
  * DEPLOY: só permita contas Google da empresa / lista aprovada.
@@ -59,14 +60,14 @@ function config_() {
 
 function auth_() {
   const email = String(Session.getActiveUser().getEmail() || '').trim().toLowerCase();
-  const conf = config_();
-  const domain = String(conf.DOMINIO_PERMITIDO || '').replace(/^@/, '').toLowerCase();
-  const allow = String(conf.EMAILS_PERMITIDOS || '').toLowerCase().split(/[,;\n]/).map(x=>x.trim()).filter(Boolean);
+  const conf = confAcesso_(); // [ZAYDA 1.8] lista de acesso guardada por 5 minutos
+  const domain = conf.dominio;
+  const allow = conf.permitidos;
   if (!email) throw new Error('Não foi possível identificar seu login Google. Faça login com sua conta da empresa e peça ao administrador para conferir as permissões de implantação.');
   if (!(domain && email.endsWith('@' + domain)) && !allow.includes(email)) {
     throw new Error('Acesso não autorizado para ' + email + '. Solicite ao administrador inclusão do email da empresa na aba CONFIG.');
   }
-  return {email, empresa: conf.NOME_EMPRESA || 'Zayda Construtora'};
+  return {email, empresa: conf.empresa};
 }
 
 function dinheiro_(x, nullable) {
@@ -97,12 +98,7 @@ function ultimos_() {
   const rows=registros_('pedidos'), map={}; // [ZAYDA 1.1]
   rows.forEach(r=>{
     const id=String(r[0]||''); const revision=Number(r[1]||0);
-    if(id && (!map[id] || revision>map[id].revisao)) map[id]={
-      id, revisao:revision,criado:dataTexto_(r[2]),atualizado:dataTexto_(r[3]),email:String(r[4]||''),
-      atendente:String(r[5]||''),entregador:String(r[6]||''),endereco:String(r[7]||''),casa:String(r[8]||''),
-      observacoes:String(r[9]||''),total:dinheiro_(r[10],false)||0,semPreco:Number(r[11]||0),status:String(r[12]||''),
-      referencia:String(r[14]||'') // [ZAYDA 1.4] coluna O de PEDIDOS
-    };
+    if(id && (!map[id] || revision>map[id].revisao)) map[id]=registroPedido_(r); // [ZAYDA 1.8] mesmo registro do índice (coluna O = referência)
   });
   return map;
 }
@@ -113,18 +109,31 @@ function recentes_() {
   return lista.map(o=>({id:o.id,atendente:o.atendente,casa:o.casa,total:o.total,semPreco:o.semPreco,atualizado:o.atualizado,situacao:situacao[o.id]}));
 }
 
+/* [ZAYDA 1.8 MEDIÇÃO TEMPORÁRIA] getPedido mede o tempo de cada parte e devolve em _medicao. */
 function getPedido(id) {
-  auth_();
+  const t0=Date.now(), m={};
+  auth_(); m.acesso=Date.now()-t0;
+  const p=lerPedido_(id,m); m.total=Date.now()-t0;
+  console.log('getPedido '+p.id+' '+JSON.stringify(m));
+  p._medicao=m; return p;
+}
+/** Leitura de um pedido lendo as abas (reserva, para pedido que não está no índice). m recebe os tempos, se vier. */
+function lerPedido_(id,m) {
+  m=m||{}; let t=Date.now();
   const found=ultimos_()[String(id||'').trim()];
+  m.pedidos=Date.now()-t;
   if (!found) throw new Error('Solicitação não encontrada. Confira o código.');
+  t=Date.now();
   const rows=registros_('itens'); // [ZAYDA 1.1]
   const itens=rows.filter(r=>String(r[0])===found.id && Number(r[1])===found.revisao).map(r=>({
     sku:String(r[2]||''),nome:String(r[3]||''),categoria:String(r[4]||''),unidade:String(r[5]||''),
     quantidade:Number(r[6]),preco:dinheiro_(r[7],true)
   }));
+  m.itens=Date.now()-t; t=Date.now();
   const entregue=entreguePorSku_(found.id); // [ZAYDA 1.2]
   itens.forEach(it=>{it.entregue=entregue[it.sku]||0;it.falta=Math.max(0,Math.round((it.quantidade-it.entregue)*1000)/1000);}); // [ZAYDA 1.6] falta
-  return {...found,itens,ultimaEntrega:ultimaEntrega_(found.id)}; // [ZAYDA 1.7] última entrega
+  const r={...found,itens,ultimaEntrega:ultimaEntrega_(found.id)}; // [ZAYDA 1.7] última entrega
+  m.entregas=Date.now()-t; return r;
 }
 
 /* ======================= [ZAYDA 1.2] CONFIRMAÇÃO DE ENTREGA ======================= */
@@ -204,6 +213,7 @@ function concluirEntrega(payload) {
     s_('auditoria').appendRow([now,user.email,'ENTREGA',found.id,found.revisao,
       'Entrega de '+linhas.length+' item(ns) em '+data+', recebida por '+recebido+': '+linhas.map(l=>l[0]).join(', ')]);
     SpreadsheetApp.flush();
+    marcarVersaoPedidos_(); // [ZAYDA 1.8]
     const entregue=entreguePorSku_(found.id);
     const itensPedido=registros_('itens').filter(r=>String(r[0])===found.id && Number(r[1])===found.revisao);
     const pendentes=itensPedido.filter(r=>(entregue[String(r[2])]||0) < Number(r[6])-1e-9).length;
@@ -285,6 +295,7 @@ function savePedido(payload) {
     const aud=s_('auditoria');aud.appendRow([now,user.email,old?'REVISAO':'CRIACAO',id,rev,
       'Registro '+(old?'editado':'criado')+' com '+parsed.length+' itens; total conhecido R$ '+total.toFixed(2)+'; '+missing+' item(ns) a cotar.']);
     SpreadsheetApp.flush();
+    marcarVersaoPedidos_(); // [ZAYDA 1.8]
     return {id,revisao:rev,status,total,semPreco:missing,itens:parsed.length,atualizado:now};
   }finally{lock.releaseLock();}
 }
@@ -524,6 +535,7 @@ function inserirCabecalhosOriginais() {
       });
     }
     SpreadsheetApp.flush();
+    marcarVersaoPedidos_(); // [ZAYDA 1.8]
     const now = Utilities.formatDate(new Date(), FUSO_ZAYDA, 'yyyy-MM-dd HH:mm:ss');
     s_('auditoria').appendRow([now, user.email, 'INTEGRACAO', '', '', 'Cabecalhos: ' + rel.join(' | ')]);
     Logger.log(rel.join('\n'));
@@ -535,4 +547,116 @@ function integEstiloCabecalho_(sh, n) {
   sh.getRange(1, 1, 1, n).setFontWeight('bold').setBackground('#10243B').setFontColor('#FFFFFF');
   sh.setFrozenRows(1);
   sh.getRange(1, 1, 1, n).protect().setDescription('Cabecalho usado pela integracao - nao apagar').setWarningOnly(true);
+}
+
+/* ======================= [ZAYDA 1.8] ABRIR PEDIDO NA HORA =======================
+ * O formulário carrega em segundo plano um índice com todos os pedidos, no mesmo formato de getPedido,
+ * e confere uma versão leve (PEDIDOS_VERSAO) para saber quando recarregá-lo. getPedido continua como reserva. */
+const CHAVE_VERSAO_PEDIDOS = 'PEDIDOS_VERSAO';
+function registroPedido_(r) {
+  return {id:String(r[0]||''), revisao:Number(r[1]||0),criado:dataTexto_(r[2]),atualizado:dataTexto_(r[3]),email:String(r[4]||''),
+    atendente:String(r[5]||''),entregador:String(r[6]||''),endereco:String(r[7]||''),casa:String(r[8]||''),
+    observacoes:String(r[9]||''),total:dinheiro_(r[10],false)||0,semPreco:Number(r[11]||0),status:String(r[12]||''),
+    referencia:String(r[14]||'')};
+}
+/** Entregue por SKU e última entrega, numa passada só (mesmas regras de entreguePorSku_ e ultimaEntrega_). */
+function resumoEntregas_(linhas, pedidoId) {
+  const entregue = {}; let ultima = null;
+  linhas.forEach(r => {
+    if (String(r[0]).indexOf('ENT-') !== 0 || String(r[1]) !== pedidoId) return;
+    const sku = String(r[3]); entregue[sku] = (entregue[sku] || 0) + (Number(r[6]) || 0);
+    const registrado = dataTexto_(r[9]);
+    if (!ultima || registrado >= ultima.registrado) ultima = {data: dataTexto_(r[7]).slice(0, 10), registrado, recebidoPor: String(r[11] || '')};
+  });
+  return {entregue, ultima};
+}
+/** Pedido completo a partir das linhas já lidas: o mesmo objeto que getPedido devolve. */
+function montarPedido_(found, linhasItens, ent) {
+  const itens = linhasItens.filter(r => String(r[0]) === found.id && Number(r[1]) === found.revisao).map(r => ({
+    sku:String(r[2]||''),nome:String(r[3]||''),categoria:String(r[4]||''),unidade:String(r[5]||''),
+    quantidade:Number(r[6]),preco:dinheiro_(r[7],true)
+  }));
+  itens.forEach(it=>{it.entregue=ent.entregue[it.sku]||0;it.falta=Math.max(0,Math.round((it.quantidade-it.entregue)*1000)/1000);});
+  return {...found, itens, ultimaEntrega: ent.ultima};
+}
+/** Uma leitura em bloco: da linha ini até a última, com ncols colunas (ou menos, se a aba tiver menos). */
+function blocoAba_(sh, ini, ncols) {
+  if (!sh) return [];
+  const ult = sh.getLastRow();
+  if (ult < ini) return [];
+  try { return sh.getRange(ini, 1, ult - ini + 1, ncols).getValues(); }
+  catch (e) { return sh.getRange(ini, 1, ult - ini + 1, Math.min(ncols, sh.getMaxColumns())).getValues(); }
+}
+/** Todos os pedidos (revisão mais alta), cada um igual ao que getPedido devolve, e a versão dos dados.
+ *  Lê PEDIDOS, ITENS_PEDIDO e ENTREGAS uma vez cada. Devolve texto JSON (mais rápido de transmitir). */
+function getIndicePedidos() {
+  const t0 = Date.now(), m = {}; // [ZAYDA 1.8 MEDIÇÃO TEMPORÁRIA] m
+  auth_(); m.acesso = Date.now() - t0;
+  const versao = versaoPedidos_(); // lida antes dos dados: se algo for gravado durante a leitura, a próxima conferência acusa
+  let t = Date.now();
+  const atual = {};
+  blocoAba_(s_('pedidos'), 1, 15).forEach(r => {
+    const id = String(r[0] || '');
+    if (id.indexOf(PREFIXO_PEDIDO) !== 0) return;
+    if (!atual[id] || Number(r[1] || 0) > atual[id].revisao) atual[id] = registroPedido_(r);
+  });
+  m.pedidos = Date.now() - t; t = Date.now();
+  const itensPorId = {};
+  blocoAba_(s_('itens'), 1, 8).forEach(r => { const k = String(r[0] || ''); if (atual[k]) (itensPorId[k] = itensPorId[k] || []).push(r); });
+  m.itens = Date.now() - t; t = Date.now();
+  const entPorId = {};
+  blocoAba_(abaEntregas_(false), 2, 12).forEach(r => { const k = String(r[1]); if (atual[k]) (entPorId[k] = entPorId[k] || []).push(r); });
+  m.entregas = Date.now() - t; t = Date.now();
+  const pedidos = Object.keys(atual).map(id => montarPedido_(atual[id], itensPorId[id] || [], resumoEntregas_(entPorId[id] || [], id)));
+  m.montar = Date.now() - t; m.total = Date.now() - t0;
+  return JSON.stringify({versao, pedidos, _medicao: m});
+}
+function versaoPedidos_() {
+  return String(PropertiesService.getScriptProperties().getProperty(CHAVE_VERSAO_PEDIDOS) || '');
+}
+/** Versão dos dados dos pedidos (leve): muda a cada gravação em PEDIDOS, ITENS_PEDIDO ou ENTREGAS. */
+function getVersaoPedidos() {
+  auth_();
+  return versaoPedidos_();
+}
+/** Chamado depois de gravar em PEDIDOS, ITENS_PEDIDO ou ENTREGAS. Uma falha aqui não desfaz a gravação. */
+function marcarVersaoPedidos_() {
+  try {
+    const d = new Date();
+    PropertiesService.getScriptProperties().setProperty(CHAVE_VERSAO_PEDIDOS, Utilities.formatDate(d, FUSO_ZAYDA, 'yyyy-MM-dd HH:mm:ss.SSS'));
+  } catch (e) { console.error('Versão dos pedidos não atualizada: ' + e.message); }
+}
+/** Lista de acesso guardada por 5 minutos; a checagem do e-mail continua em toda chamada (auth_). */
+function confAcesso_() {
+  const chave = 'ZAYDA_ACESSO_V1'; let cache = null;
+  try { cache = CacheService.getScriptCache(); const v = cache.get(chave); if (v) return JSON.parse(v); } catch (e) {}
+  const conf = config_();
+  const v = {dominio: String(conf.DOMINIO_PERMITIDO || '').replace(/^@/, '').toLowerCase(),
+    permitidos: String(conf.EMAILS_PERMITIDOS || '').toLowerCase().split(/[,;\n]/).map(x => x.trim()).filter(Boolean),
+    empresa: conf.NOME_EMPRESA || 'Zayda Construtora'};
+  try { if (cache) cache.put(chave, JSON.stringify(v), 300); } catch (e) {}
+  return v;
+}
+
+/* [ZAYDA 1.8 MEDIÇÃO TEMPORÁRIA] Rode pelo editor (Executar > medirVelocidadePedidos) e copie o Registro de execução.
+ * Só lê. Confere se cada pedido do índice é igual ao que getPedido devolve, nos pedidos reais. */
+function medirVelocidadePedidos() {
+  const tempo = f => { const t = Date.now(); const r = f(); return [Date.now() - t, r]; };
+  const linhas = [];
+  const ta = []; for (let k = 0; k < 3; k++) ta.push(tempo(() => auth_())[0]);
+  let guardada = false; try { guardada = !!CacheService.getScriptCache().get('ZAYDA_ACESSO_V1'); } catch (e) {}
+  linhas.push('acesso (auth_) 3 vezes: ' + ta.join(' / ') + ' ms · lista guardada no cache: ' + (guardada ? 'SIM' : 'NÃO'));
+  const [ti, txt] = tempo(() => getIndicePedidos()), d = JSON.parse(txt);
+  linhas.push('getIndicePedidos: ' + ti + ' ms · ' + d.pedidos.length + ' pedidos · ' + Math.round(txt.length / 1024) + ' KB · partes ' + JSON.stringify(d._medicao));
+  const [tv, v] = tempo(() => getVersaoPedidos());
+  linhas.push('getVersaoPedidos: ' + tv + ' ms · versão "' + v + '"');
+  let iguais = 0; const dif = [];
+  d.pedidos.forEach(p => { if (JSON.stringify(p) === JSON.stringify(lerPedido_(p.id))) iguais++; else if (dif.length < 5) dif.push(p.id); });
+  linhas.push('índice x getPedido: ' + iguais + ' de ' + d.pedidos.length + ' iguais' + (dif.length ? ' · diferentes: ' + dif.join(', ') : ''));
+  const ord = d.pedidos.slice().sort((a, b) => b.atualizado.localeCompare(a.atualizado));
+  [['mais recente', ord[0]], ['mais antigo', ord[ord.length - 1]]].forEach(([rot, p]) => {
+    if (!p) return; const [tp] = tempo(() => getPedido(p.id)); linhas.push('getPedido (reserva) ' + rot + ' ' + p.id + ': ' + tp + ' ms');
+  });
+  Logger.log(linhas.join('\n'));
+  return linhas.join('\n');
 }
