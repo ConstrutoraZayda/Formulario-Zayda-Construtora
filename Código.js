@@ -225,6 +225,7 @@ function concluirEntrega(payload) {
       'Entrega de '+linhas.length+' item(ns) em '+data+', recebida por '+recebido+': '+linhas.map(l=>l[0]).join(', ')]);
     SpreadsheetApp.flush();
     marcarVersaoPedidos_(); // [ZAYDA 1.8]
+    marcarUltimaAlteracao_(); // [ZAYDA 2.1]
     const entregue=entreguePorSku_(found.id);
     const itensPedido=registros_('itens').filter(r=>String(r[0])===found.id && Number(r[1])===found.revisao);
     const pendentes=itensPedido.filter(r=>(entregue[String(r[2])]||0) < Number(r[6])-1e-9).length;
@@ -299,6 +300,7 @@ function savePedido(payload) {
       'Registro criado com '+parsed.length+' itens; total conhecido R$ '+total.toFixed(2)+'; '+missing+' item(ns) a cotar.']);
     SpreadsheetApp.flush();
     marcarVersaoPedidos_(); // [ZAYDA 1.8]
+    marcarUltimaAlteracao_(); // [ZAYDA 2.1]
     const resultado={id,revisao:rev,status,total,semPreco:missing,itens:parsed.length,atualizado:now};
     if(cache) { try{ cache.put(chave, JSON.stringify(resultado), 600); }catch(e){} } // [ZAYDA 1.9] 10 minutos
     return resultado;
@@ -631,6 +633,18 @@ function marcarVersaoPedidos_() {
     PropertiesService.getScriptProperties().setProperty(CHAVE_VERSAO_PEDIDOS, Utilities.formatDate(d, FUSO_ZAYDA, 'yyyy-MM-dd HH:mm:ss.SSS'));
   } catch (e) { console.error('Versão dos pedidos não atualizada: ' + e.message); }
 }
+/** [ZAYDA 2.1] CONFIG!ULTIMA_ALTERACAO = Date.now() (número) depois de cada gravação de pedido, entrega,
+ *  cancelamento ou encerramento; o painel lê essa célula para saber logo que algo mudou.
+ *  Cria a linha no fim da CONFIG se não existir. Uma falha aqui não desfaz a gravação. */
+function marcarUltimaAlteracao_() {
+  try {
+    const sh = s_('config'), n = sh.getLastRow();
+    const chaves = n ? sh.getRange(1, 1, n, 1).getValues() : [];
+    const i = chaves.findIndex(r => String(r[0]).trim() === 'ULTIMA_ALTERACAO');
+    if (i >= 0) sh.getRange(i + 1, 2).setValue(Date.now());
+    else sh.getRange(n + 1, 1, 1, 2).setValues([['ULTIMA_ALTERACAO', Date.now()]]);
+  } catch (e) { console.error('ULTIMA_ALTERACAO não atualizada: ' + e.message); }
+}
 /** Lista de acesso guardada por 5 minutos; a checagem do e-mail continua em toda chamada (auth_). */
 function confAcesso_() {
   const chave = 'ZAYDA_ACESSO_V1'; let cache = null;
@@ -703,6 +717,7 @@ function fecharPedido_(tipo, idPedido, motivoTxt, chaveTxt) {
       (tipo === 'CANCELADO' ? 'Pedido cancelado' : 'Pedido encerrado; não entregue: ' + naoEntregues) + '. Motivo: ' + motivo]);
     SpreadsheetApp.flush();
     marcarVersaoPedidos_();
+    marcarUltimaAlteracao_(); // [ZAYDA 2.1]
     const resultado = {id, tipo, dataHora: now, email: user.email, motivo, naoEntregues};
     if (cache) { try { cache.put(chave, JSON.stringify(resultado), 600); } catch (e) {} }
     return resultado;
