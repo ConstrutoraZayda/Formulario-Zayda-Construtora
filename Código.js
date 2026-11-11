@@ -112,6 +112,38 @@ function usuarios_() {
   return out;
 }
 
+/* ======================= [ZAYDA 2.2] PRESENÇA NO FORMULÁRIO ======================= */
+/** Aba técnica _PRESENCA (A EMAIL · B ULTIMO_FORMULARIO, texto yyyy-MM-dd HH:mm:ss), uma linha por e-mail.
+ *  Chamada pelo Index.html enquanto o formulário está aberto e visível. Só grava se a última gravação
+ *  daquele e-mail tiver mais de 90 s (marcada no cache); sem a trava na hora, apenas ignora. */
+const ABA_PRESENCA = '_PRESENCA';
+function presencaFormulario() {
+  const email = auth_().email, chave = 'ZAYDA_PRESENCA_' + email;
+  let cache = null;
+  try { cache = CacheService.getScriptCache(); if (cache.get(chave)) return {ok: true, gravado: false}; } catch (e) {}
+  const lock = LockService.getDocumentLock() || LockService.getScriptLock();
+  if (!lock.tryLock(500)) return {ok: true, gravado: false};
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sh = ss.getSheetByName(ABA_PRESENCA);
+    if (!sh) {
+      sh = ss.insertSheet(ABA_PRESENCA);
+      sh.getRange(1, 1, 1, 2).setValues([['EMAIL', 'ULTIMO_FORMULARIO']]).setFontWeight('bold').setBackground('#005f2a').setFontColor('#ffffff');
+      sh.setFrozenRows(1);
+      sh.protect().setDescription('Gravada pelo formulário (presença). Não editar.').setWarningOnly(true);
+    }
+    const agora = Utilities.formatDate(new Date(), FUSO_ZAYDA, 'yyyy-MM-dd HH:mm:ss');
+    const n = sh.getLastRow() - 1;
+    const emails = n > 0 ? sh.getRange(2, 1, n, 1).getDisplayValues().map(r => String(r[0] || '').trim().toLowerCase()) : [];
+    const i = emails.indexOf(email);
+    sh.getRange(i >= 0 ? i + 2 : sh.getLastRow() + 1, 1, 1, 2).setNumberFormat('@').setValues([[email, agora]]);
+    try { if (cache) cache.put(chave, '1', 90); } catch (e) {}
+    return {ok: true, gravado: true};
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function dinheiro_(x, nullable) {
   if (x === '' || x === null || x === undefined) return nullable ? null : 0;
   if (typeof x === 'number') return Number.isFinite(x) ? x : null;
