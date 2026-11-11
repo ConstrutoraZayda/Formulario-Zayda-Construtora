@@ -279,7 +279,7 @@ const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 const norm=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 function notify(msg,error=false){const el=document.getElementById('message');el.textContent=msg;el.className='message'+(error?' error':'');el.style.display='block';el.scrollIntoView({behavior:'smooth',block:'nearest'});}
 function err(e){notify(e&&e.message?e.message:String(e),true);atualizarSujo();}
-function boot(){google.script.run.withSuccessHandler(data=>{user=data.user;produtos=data.produtos;categories=data.categorias;recentes=data.recentes;document.getElementById('identity').textContent=user.email;
+function boot(){google.script.run.withSuccessHandler(data=>{user=data.user;produtos=data.produtos;categories=data.categorias;recentes=data.recentes;document.getElementById('identity').textContent=user.nome?'Olá, '+user.nome+(user.empresaUsuario?' · '+user.empresaUsuario:''):user.email; /* [ZAYDA 2.1] nome da aba USUARIOS */
  document.getElementById('catalogmeta').textContent=`${produtos.length} produtos cadastrados • ${produtos.filter(p=>p.preco!==null).length} com preço de referência`;
  document.getElementById('categoria').innerHTML='<option value="">Todas as categorias</option>'+categories.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');renderResults();renderRecent();carregarObras();carregarIndice();
 }).withFailureHandler(err).getBootstrap();}

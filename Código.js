@@ -77,10 +77,39 @@ function auth_() {
   const domain = conf.dominio;
   const allow = conf.permitidos;
   if (!email) throw new Error('Não foi possível identificar seu login Google. Faça login com sua conta da empresa e peça ao administrador para conferir as permissões de implantação.');
+  const negado = 'Acesso não autorizado para ' + email + '. Solicite ao administrador inclusão do email da empresa na aba CONFIG. Peça ao administrador para cadastrar seu e-mail.';
+  // [ZAYDA 2.1] Com a aba USUARIOS preenchida, vale o cadastro dela (FORMULARIO = Sim e ATIVO = Sim); sem ela, CONFIG!EMAILS_PERMITIDOS.
+  const cad = usuarios_();
+  if (cad.total) {
+    const u = cad.porEmail[email];
+    if (!u || !u.formulario || !u.ativo) throw new Error(negado);
+    return {email, empresa: conf.empresa, nome: u.nome, empresaUsuario: u.empresa};
+  }
   if (!(domain && email.endsWith('@' + domain)) && !allow.includes(email)) {
-    throw new Error('Acesso não autorizado para ' + email + '. Solicite ao administrador inclusão do email da empresa na aba CONFIG.');
+    throw new Error(negado);
   }
   return {email, empresa: conf.empresa};
+}
+
+/** [ZAYDA 2.1] Cadastro da aba USUARIOS (só leitura; a aba é protegida e mantida pelo dono).
+ *  A EMAIL · B NOME · C USUARIO · D EMPRESA · E PERFIL · F FORMULARIO · G PAINEL · H ATIVO · I OBSERVACAO.
+ *  Guardado por 2 minutos: desativar alguém vale rápido. */
+function usuarios_() {
+  const chave = 'ZAYDA_USUARIOS_V1'; let cache = null;
+  try { cache = CacheService.getScriptCache(); const v = cache.get(chave); if (v) return JSON.parse(v); } catch (e) {}
+  const sim = x => x === true || String(x || '').trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase() === 'SIM';
+  const out = {total: 0, porEmail: {}};
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('USUARIOS');
+  if (sh && sh.getLastRow() > 1) {
+    sh.getRange(2, 1, sh.getLastRow() - 1, 8).getValues().forEach(r => {
+      const em = String(r[0] || '').trim().toLowerCase();
+      if (!em) return;
+      out.total++;
+      if (!out.porEmail[em]) out.porEmail[em] = {nome: String(r[1] || '').trim(), empresa: String(r[3] || '').trim(), formulario: sim(r[5]), ativo: sim(r[7])};
+    });
+  }
+  try { if (cache) cache.put(chave, JSON.stringify(out), 120); } catch (e) {}
+  return out;
 }
 
 function dinheiro_(x, nullable) {
