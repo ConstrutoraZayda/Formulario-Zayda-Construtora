@@ -70,58 +70,59 @@ header small{color:#5b7260!important;}
 /* Documento A4 exclusivo: fora da tela, visível apenas na impressão.
    [ZAYDA 1.3] Layout compacto e ajuste automático para caber em 1 página A4. */
 #printSheet { display:none; }
+#printSheet, #printSheet * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
 @page { size:A4 portrait; margin:0; }
 .print-folha {width:100%; border-collapse:collapse;}
 .print-folha > thead > tr > td, .print-folha > tfoot > tr > td, .print-folha > tbody > tr > td {padding:0 11mm; border:0;}
 .print-esp {height:10mm;}
 .print-page { width:auto; box-sizing:border-box; padding:0; font-family:Arial,Helvetica,sans-serif;
-  font-size:10pt; line-height:1.3; color:#102a3d; background:#fff; }
-.print-head { display:flex; justify-content:space-between; align-items:center; padding-bottom:4mm; border-bottom:2.5px solid #00622b; gap:8mm; }
+  font-size:10pt; line-height:1.3; color:#0F1A14; background:#fff; }
+.print-head { display:flex; justify-content:space-between; align-items:center; padding-bottom:4mm; border-bottom:2.5px solid #00632B; gap:8mm; }
 .print-brand { display:flex; align-items:center; flex:0 0 auto; max-width:62mm; }
 .print-real-logo { display:block; width:54mm; background:#fff; max-width:100%; height:auto; }
 .print-doclabel {text-align:right; max-width:110mm;}
-.print-doclabel span {font-size:9pt; font-weight:700; letter-spacing:1.2px; color:#4f6577;}
-.print-doclabel strong { display:block; font-size:14pt; margin:1.5mm 0 1mm; color:#0b2033; overflow-wrap:anywhere; }
-.print-doclabel small { display:block; font-size:9.5pt; color:#4f6577; }
-.print-chip { display:inline-block; background:#f0f8eb; border:1px solid #c7deb5; color:#00622b; padding:1.2mm 3mm;
+.print-doclabel span {font-size:9pt; font-weight:800; letter-spacing:1.2px; color:#3A4A40;}
+.print-doclabel strong { display:block; font-size:14pt; margin:1.5mm 0 1mm; color:#0F1A14; overflow-wrap:anywhere; }
+.print-doclabel small { display:block; font-size:9.5pt; color:#3A4A40; }
+.print-chip { display:inline-block; background:#F1F8F3; border:1px solid #00632B; color:#00632B; padding:1.2mm 3mm;
   border-radius:1.5mm; font-weight:700; font-size:9pt; margin-top:2mm; }
-.print-chip.draft { background:#fff3df; color:#80551a; border-color:#f2d9ad; }
-.print-section-name {font-size:10pt; font-weight:800; letter-spacing:.6px; text-transform:uppercase; color:#00622b; margin:3.5mm 0 1.6mm; }
-.print-info { display:grid; grid-template-columns:1fr 1fr 1fr; gap:2.2mm 6mm; padding:2.8mm 3.5mm; background:#f3f7f9; border:1px solid #d6e2e8; border-radius:2mm; }
+.print-chip.draft { background:#FFF3DF; color:#B26A00; border-color:#B26A00; }
+.print-section-name {font-size:10pt; font-weight:800; letter-spacing:.6px; text-transform:uppercase; color:#00632B; margin:3.5mm 0 1.6mm; }
+.print-info { display:grid; grid-template-columns:1fr 1fr 1fr; gap:2.2mm 6mm; padding:2.8mm 3.5mm; background:#F1F8F3; border:1px solid #B9CCBF; border-radius:2mm; }
 .print-field {min-width:0; overflow-wrap:break-word;}
 .print-field.wide {grid-column:span 2;}
 .print-field.full {grid-column:1/-1;}
-.print-field.email .val {font-size:9pt; font-weight:600; word-break:break-all;}
-.print-field .key {font-size:8pt; color:#4f6577; text-transform:uppercase; font-weight:700; letter-spacing:.4px; margin-bottom:.6mm;}
-.print-field .val {font-size:10.8pt; color:#0b2033; font-weight:700;}
-.print-table {width:100%; border-collapse:collapse; table-layout:fixed; font-size:10pt;}
+.print-field.email .val {font-size:9pt; font-weight:600; word-break:break-all; color:#0F1A14;}
+.print-field .key {font-size:8pt; color:#3A4A40; text-transform:uppercase; font-weight:800; letter-spacing:.4px; margin-bottom:.6mm;}
+.print-field .val {font-size:10.8pt; color:#0F1A14; font-weight:700;}
+.print-table {width:100%; border-collapse:collapse; table-layout:fixed; font-size:10pt; color:#0F1A14;}
 .print-table thead { display:table-header-group; }
-.print-table th {padding:1.8mm 2mm; background:#00632b; color:#fff; text-align:left; font-size:8.8pt; text-transform:uppercase; letter-spacing:.25px; font-weight:700;}
+.print-table th {padding:1.8mm 2mm; background:#00632B; color:#FFFFFF; text-align:left; font-size:8.8pt; text-transform:uppercase; letter-spacing:.25px; font-weight:700;}
 .print-table th.num, .print-table td.num{text-align:right; white-space:nowrap;}
-.print-table td {border-bottom:1px solid #cfdce3; padding:1.5mm 2mm; vertical-align:top;}
-.print-table tbody tr:nth-child(even){background:#f3f7f9;}
+.print-table td {border-bottom:1px solid #B9CCBF; padding:1.5mm 2mm; vertical-align:top;}
+.print-table tbody tr:nth-child(even){background:#F3F9F5;}
 .print-table tr{break-inside:avoid;page-break-inside:avoid;}
-.print-table .item-name{font-weight:700;color:#0b2033;overflow-wrap:anywhere;}
-.print-table .sku{font-size:8pt;color:#5b6e7e;margin-top:.2mm;}
+.print-table .item-name{font-weight:700;color:#0F1A14;overflow-wrap:anywhere;}
+.print-table .sku{font-size:8pt;color:#3A4A40;margin-top:.2mm;}
 .print-table td.qtd{font-weight:800;font-size:11pt;}
-.print-table .price-missing{color:#a26015;font-style:italic;}
+.print-table .price-missing{color:#B26A00;background:#FFF3DF;font-style:italic;font-weight:700;padding:0 1mm;border-radius:1mm;}
 .print-lower {display:grid; grid-template-columns:minmax(0,1fr) 72mm; gap:6mm; margin-top:3mm; align-items:start;}
-.print-summary-box {background:#f2f8ee; border:1px solid #cfe2c2; padding:3.5mm 4mm; border-radius:2mm; break-inside:avoid;}
-.print-summary-row {display:flex;justify-content:space-between;gap:4mm;font-size:10pt;margin-bottom:1.4mm;}
-.print-summary-total {display:flex;justify-content:space-between;align-items:baseline; border-top:1px solid #c5dcd8;padding-top:2.2mm;font-weight:800;font-size:10.5pt;}
-.print-summary-total strong{font-size:15pt;color:#0b2033;}
-.print-notes {font-size:10pt; padding:2.2mm 3mm; border-left:3px solid #a5cd49; background:#f6f9fa; overflow-wrap:break-word;white-space:pre-wrap;}
-.print-alert {font-size:9.5pt;color:#915b13;background:#fff7e8;padding:2.2mm;border-radius:1.5mm;margin-top:2mm;}
+.print-summary-box {background:#E6F4EA; border:1px solid #B9CCBF; padding:3.5mm 4mm; border-radius:2mm; break-inside:avoid;}
+.print-summary-row {display:flex;justify-content:space-between;gap:4mm;font-size:10pt;margin-bottom:1.4mm;color:#0F1A14;}
+.print-summary-total {display:flex;justify-content:space-between;align-items:baseline; border-top:1px solid #B9CCBF;padding-top:2.2mm;font-weight:800;font-size:10.5pt;color:#0F1A14;}
+.print-summary-total strong{font-size:15pt;color:#0A8A3E;}
+.print-notes {font-size:10pt; padding:2.2mm 3mm; border-left:3px solid #00632B; background:#F1F8F3; color:#0F1A14; overflow-wrap:break-word;white-space:pre-wrap;}
+.print-alert {font-size:9.5pt;color:#B26A00;background:#FFF3DF;border:1px solid #B26A00;font-weight:700;padding:2.2mm;border-radius:1.5mm;margin-top:2mm;}
 .print-signatures {display:grid;grid-template-columns:repeat(3,1fr);gap:8mm;margin-top:13mm;break-inside:avoid;}
-.print-signature{text-align:center;color:#33495b;font-size:9.5pt;}
-.print-signature .linha{border-top:1.2px solid #33495b;margin-bottom:1.6mm;}
-.print-signature b{display:block;font-size:10pt;color:#0b2033;text-transform:uppercase;letter-spacing:.3px;}
+.print-signature{text-align:center;color:#3A4A40;font-size:9.5pt;}
+.print-signature .linha{border-top:1.2px solid #0F1A14;margin-bottom:1.6mm;}
+.print-signature b{display:block;font-size:10pt;color:#0F1A14;text-transform:uppercase;letter-spacing:.3px;}
 .print-signature .nome{display:block;margin-top:1mm;min-height:4.5mm;font-weight:600;}
-.print-signature .data{display:block;margin-top:1.8mm;color:#4f6577;}
-.print-bottom{border-top:1px solid #d6e2e8;padding-top:2mm;margin-top:5mm;display:flex;justify-content:space-between;gap:4mm;color:#4f6577;font-size:8.5pt;}
-.print-bottom strong{color:#0b2033;}
+.print-signature .data{display:block;margin-top:1.8mm;color:#3A4A40;}
+.print-bottom{border-top:1px solid #B9CCBF;padding-top:2mm;margin-top:5mm;display:flex;justify-content:space-between;gap:4mm;color:#3A4A40;font-size:8.5pt;}
+.print-bottom strong{color:#0F1A14;}
 @media print {
-  html, body { background:#fff !important; color:#142d41 !important; margin:0 !important;
+  html, body { background:#fff !important; color:#0F1A14 !important; margin:0 !important;
     -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   body > header, body > .topbar, body > .wrap, body > #message { display:none !important; }
   #printSheet {display:block !important; position:static !important; width:auto !important; height:auto !important; overflow:visible !important; }
@@ -159,7 +160,7 @@ body.travado .obralimpa,body.travado .obraseta,body.travado #voltarLista{display
 #confMotivo{width:100%;min-height:72px;font-size:16px}
 .conf-erro{margin-top:6px;color:var(--danger);font-size:12px;font-weight:700}
 .conf-erro[hidden]{display:none}
-.print-chip.fechado{background:#fdecea;color:#9d2a15;border-color:#f3c1b8;margin-left:2mm}
+.print-chip.fechado{background:#fdecea;color:#C62828;border-color:#C62828;margin-left:2mm}
 .cartinputs{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 .cartinputs .qtdcampo{grid-column:1/-1}
 .qtdbox{display:flex;align-items:center;gap:6px}
