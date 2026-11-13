@@ -10,6 +10,7 @@
  * Versão 1.8 (09/11/2026): pedido aberto na hora por um índice carregado antes, marcado com [ZAYDA 1.8].
  * Versão 1.9 (09/11/2026): pedido salvo não muda mais, chave contra salvamento duplicado, cancelar/encerrar e textos que viravam data, marcados com [ZAYDA 1.9].
  * Versão 2.0 (09/11/2026): quem entregou cada entrega (ENTREGAS coluna N) e a lista de entregas do pedido, marcados com [ZAYDA 2.0].
+ * Versão 2.3 (13/11/2026): Outros fornecedores (FORNECEDORES, TERCEIROS, TERCEIROS_PARCELAS e anexos no Drive), marcado com [ZAYDA 2.3].
  * O restante está igual ao original.
  * Instale este script dentro da planilha fornecida: Extensões > Apps Script.
  * DEPLOY: só permita contas Google da empresa / lista aprovada.
@@ -768,4 +769,386 @@ function fecharPedido_(tipo, idPedido, motivoTxt, chaveTxt) {
     if (cache) { try { cache.put(chave, JSON.stringify(resultado), 600); } catch (e) {} }
     return resultado;
   } finally { lock.releaseLock(); }
+}
+
+/* ======================= [ZAYDA 2.3] OUTROS FORNECEDORES =======================
+ * Compras e serviços fora da loja BSJ (vidraçaria, marmoraria, pisos, concretagem...), com pagamento único ou parcelado.
+ * Abas criadas na primeira utilização (o painel lê por posição; campo novo = coluna nova no fim):
+ *   FORNECEDORES        A ID · B NOME · C TIPO_PRINCIPAL · D CPF_CNPJ · E TELEFONE · F OBSERVACAO · G ATIVO · H CRIADO_POR · I CRIADO_EM
+ *   TERCEIROS           A ID · B CRIADO_EM · C CRIADO_POR · D OBRA_ID · E FORNECEDOR_ID · F FORNECEDOR_NOME · G TIPO · H DESCRICAO · I QUANTIDADE
+ *                       J UNIDADE · K VALOR_TOTAL · L DATA_REFERENCIA · M NOTA_NUMERO · N ANEXO_URL · O FORMA_PAGAMENTO · P CONFERENCIA
+ *                       Q CONFERIDO_POR · R CONFERIDO_EM · S MOTIVO · T OBSERVACAO · U ATUALIZADO_EM · V ATUALIZADO_POR
+ *   TERCEIROS_PARCELAS  A ID_PARCELA · B ID_LANCAMENTO · C NUMERO · D DESCRICAO · E VALOR · F VENCIMENTO · G PAGO · H DATA_PAGAMENTO
+ *                       I FORMA · J COMPROVANTE_URL · K REGISTRADO_POR · L REGISTRADO_EM
+ * A conferência é feita no painel (EMPRESA Zayda + PERFIL Admin); aqui só se lança, edita enquanto não conferido e registra pagamentos. */
+const TER = Object.freeze({
+  abaForn: 'FORNECEDORES', abaLanc: 'TERCEIROS', abaParc: 'TERCEIROS_PARCELAS',
+  cabForn: ['ID','NOME','TIPO_PRINCIPAL','CPF_CNPJ','TELEFONE','OBSERVACAO','ATIVO','CRIADO_POR','CRIADO_EM'],
+  cabLanc: ['ID','CRIADO_EM','CRIADO_POR','OBRA_ID','FORNECEDOR_ID','FORNECEDOR_NOME','TIPO','DESCRICAO','QUANTIDADE','UNIDADE','VALOR_TOTAL',
+            'DATA_REFERENCIA','NOTA_NUMERO','ANEXO_URL','FORMA_PAGAMENTO','CONFERENCIA','CONFERIDO_POR','CONFERIDO_EM','MOTIVO','OBSERVACAO',
+            'ATUALIZADO_EM','ATUALIZADO_POR'],
+  cabParc: ['ID_PARCELA','ID_LANCAMENTO','NUMERO','DESCRICAO','VALOR','VENCIMENTO','PAGO','DATA_PAGAMENTO','FORMA','COMPROVANTE_URL',
+            'REGISTRADO_POR','REGISTRADO_EM'],
+  tipos: ['Vidros e esquadrias','Pedras e marmoraria','Pisos e revestimentos','Concretagem','Outros'],
+  unidades: ['un','m²','m³','m','kg','verba'],
+  formas: ['Pix','Boleto','Cartão','Dinheiro','Transferência','Outro'],
+  pasta: 'ZAYDA - Outros fornecedores',
+  maxArquivo: 10 * 1024 * 1024
+});
+
+/** Usuário que pode usar a tela: ATIVO na aba USUARIOS com FORMULARIO = Sim (sem a aba USUARIOS preenchida, ninguém). */
+function terUsuario_() {
+  const a = auth_();
+  const u = usuarios_().porEmail[a.email];
+  if (!u || !u.formulario || !u.ativo) throw new Error('Outros fornecedores: seu e-mail precisa estar ativo na aba USUARIOS com FORMULARIO = Sim.');
+  const zayda = String(u.empresa || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toUpperCase() === 'ZAYDA';
+  return {email: a.email, nome: u.nome, empresa: u.empresa, zayda};
+}
+/** Para o botão da barra de topo: só aparece para quem pode usar (o servidor confere de novo em cada ação). */
+function terceirosAcesso() {
+  try { const u = terUsuario_(); return {pode: true, zayda: u.zayda, email: u.email}; } catch (e) { return {pode: false}; }
+}
+
+function terAba_(nome, cab, criar) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(nome);
+  if (!sh && criar) {
+    sh = ss.insertSheet(nome);
+    sh.getRange(1, 1, 1, cab.length).setValues([cab]).setFontWeight('bold').setBackground('#005f2a').setFontColor('#ffffff');
+    sh.setFrozenRows(1);
+    // Só aviso: o formulário grava como o usuário que acessa, e a proteção "só o dono" impediria a gravação.
+    sh.protect().setDescription('Gravada pelo formulário (Outros fornecedores). Não editar à mão.').setWarningOnly(true);
+  }
+  return sh;
+}
+function terLinhas_(nome, cab) {
+  const sh = terAba_(nome, cab, false);
+  if (!sh || sh.getLastRow() < 2) return [];
+  return sh.getRange(2, 1, sh.getLastRow() - 1, cab.length).getValues();
+}
+const terAgora_ = () => Utilities.formatDate(new Date(), FUSO_ZAYDA, 'yyyy-MM-dd HH:mm:ss');
+const terHoje_ = () => Utilities.formatDate(new Date(), FUSO_ZAYDA, 'yyyy-MM-dd');
+const terSemAc_ = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+function terDataTxt_(v) {
+  if (v instanceof Date && !isNaN(v)) return Utilities.formatDate(v, FUSO_ZAYDA, 'yyyy-MM-dd');
+  return String(v || '').trim().slice(0, 10);
+}
+function terData_(v, campo, obrig, min, max) {
+  const s = String(v || '').trim();
+  if (!s) { if (obrig) throw new Error('Informe a data: ' + campo + '.'); return ''; }
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s), d = m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])) : null;
+  if (!d || d.getUTCDate() !== +m[3] || d.getUTCMonth() !== +m[2] - 1) throw new Error('Data inválida: ' + campo + '.');
+  if ((min && s < min) || (max && s > max)) throw new Error('Data fora do permitido: ' + campo + '.');
+  return s;
+}
+function terSomaDias_(iso, dias) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso), d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3] + dias));
+  return Utilities.formatDate(d, 'UTC', 'yyyy-MM-dd');
+}
+function terValor_(v, campo, max) {
+  const n = typeof v === 'number' ? v : dinheiro_(v, true);
+  if (n === null || !Number.isFinite(n) || n <= 0 || n > max) throw new Error('Valor inválido: ' + campo + ' (maior que zero).');
+  const c = Math.round(n * 100);
+  if (Math.abs(c - n * 100) > 1e-6) throw new Error('Valor com mais de 2 casas decimais: ' + campo + '.');
+  return c / 100;
+}
+function terUrl_(v, campo) {
+  const s = String(v || '').trim();
+  if (!s) return '';
+  if (s.length > 300 || !/^https:\/\/(drive|docs)\.google\.com\/[A-Za-z0-9_\-\/?=&.%]+$/.test(s)) throw new Error('Link inválido: ' + campo + '.');
+  return s;
+}
+function terAuditar_(email, acao, id, texto) {
+  s_('auditoria').appendRow([terAgora_(), email, acao, id, '', String(texto).slice(0, 2000)]);
+}
+function terLock_() {
+  const lock = LockService.getDocumentLock() || LockService.getScriptLock();
+  if (!lock.tryLock(20000)) throw new Error('Sistema ocupado. Tente novamente.');
+  return lock;
+}
+/** Obras da aba OBRAS (a mesma lista do pedido BSJ). */
+function terObras_() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('OBRAS');
+  if (!sh || sh.getLastRow() < 2) return [];
+  return sh.getRange(2, 1, sh.getLastRow() - 1, 5).getValues()
+    .filter(r => String(r[0] || '').trim() && String(r[1] || '').trim())
+    .map(r => ({id: String(r[0]).trim(), endereco: String(r[1]).trim(), cliente: String(r[2] || '').trim(), status: String(r[3] || '').trim()}));
+}
+function terFornecedores_() {
+  return terLinhas_(TER.abaForn, TER.cabForn).filter(r => /^FOR-\d+$/.test(String(r[0] || '').trim())).map(r => ({
+    id: String(r[0]).trim(), nome: textoCelula_(r[1]), tipo: textoCelula_(r[2]), doc: textoCelula_(r[3]), telefone: textoCelula_(r[4]),
+    obs: textoCelula_(r[5]), ativo: String(r[6] || '').trim().toUpperCase() !== 'NAO'}));
+}
+function terParcelaObj_(r) {
+  return {id: String(r[0]), lanc: String(r[1]), numero: Number(r[2]) || 0, descricao: textoCelula_(r[3]), valor: Math.round((Number(r[4]) || 0) * 100) / 100,
+    vencimento: terDataTxt_(r[5]), pago: String(r[6] || '').trim().toUpperCase() === 'SIM', dataPagamento: terDataTxt_(r[7]), forma: textoCelula_(r[8]),
+    comprovante: String(r[9] || ''), registradoPor: String(r[10] || ''), registradoEm: dataTexto_(r[11])};
+}
+function terLancObj_(r) {
+  return {id: String(r[0]), criadoEm: dataTexto_(r[1]), criadoPor: String(r[2] || ''), obra: String(r[3] || ''), fornecedorId: String(r[4] || ''),
+    fornecedor: textoCelula_(r[5]), tipo: textoCelula_(r[6]), descricao: textoCelula_(r[7]), quantidade: r[8] === '' ? null : Number(r[8]),
+    unidade: textoCelula_(r[9]), valor: Math.round((Number(r[10]) || 0) * 100) / 100, dataRef: terDataTxt_(r[11]), nota: textoCelula_(r[12]),
+    anexo: String(r[13] || ''), forma: String(r[14] || ''), conferencia: String(r[15] || 'AGUARDANDO').trim().toUpperCase() || 'AGUARDANDO',
+    conferidoPor: String(r[16] || ''), conferidoEm: dataTexto_(r[17]), motivo: textoCelula_(r[18]), obs: textoCelula_(r[19]),
+    atualizadoEm: dataTexto_(r[20]), atualizadoPor: String(r[21] || '')};
+}
+
+/** Tudo que a tela precisa: obras, fornecedores ativos e os lançamentos com as parcelas (mais recentes primeiro). Texto JSON. */
+function terceirosDados() {
+  const u = terUsuario_();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (![TER.abaForn, TER.abaLanc, TER.abaParc].every(n => ss.getSheetByName(n))) { // 1ª abertura: cria as abas vazias, com cabeçalho
+    const lock = terLock_();
+    try { terAba_(TER.abaForn, TER.cabForn, true); terAba_(TER.abaLanc, TER.cabLanc, true); terAba_(TER.abaParc, TER.cabParc, true); SpreadsheetApp.flush(); } finally { lock.releaseLock(); }
+  }
+  const parc = {};
+  terLinhas_(TER.abaParc, TER.cabParc).filter(r => String(r[0] || '').indexOf('TER-') === 0).forEach(r => {
+    const p = terParcelaObj_(r); (parc[p.lanc] = parc[p.lanc] || []).push(p); });
+  const lancs = terLinhas_(TER.abaLanc, TER.cabLanc).filter(r => String(r[0] || '').indexOf('TER-') === 0).map(r => {
+    const l = terLancObj_(r); l.parcelas = (parc[l.id] || []).sort((a, b) => a.numero - b.numero); return l; })
+    .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm) || b.id.localeCompare(a.id));
+  return JSON.stringify({eu: {email: u.email, nome: u.nome, zayda: u.zayda}, hoje: terHoje_(), obras: terObras_(),
+    fornecedores: terFornecedores_().filter(f => f.ativo), lancamentos: lancs, tipos: TER.tipos, unidades: TER.unidades, formas: TER.formas});
+}
+
+/** Novo fornecedor. dados = {nome, tipo, doc, telefone, obs}. Nome repetido (sem acento/maiúsculas) não entra. */
+function salvarFornecedor(dados) {
+  const u = terUsuario_();
+  if (!dados || typeof dados !== 'object') throw new Error('Dados do fornecedor inválidos.');
+  const lock = terLock_();
+  try {
+    const nome = safeString_(dados.nome, 120, 'Nome do fornecedor', true);
+    if (nome.length < 2) throw new Error('Informe o nome do fornecedor.');
+    const tipo = safeString_(dados.tipo, 40, 'Tipo principal', false);
+    if (tipo && TER.tipos.indexOf(tipo) < 0) throw new Error('Tipo principal inválido.');
+    const doc = safeString_(dados.doc, 30, 'CPF/CNPJ', false), dig = doc.replace(/\D/g, '');
+    if (doc && dig.length !== 11 && dig.length !== 14) throw new Error('CPF/CNPJ inválido: use 11 (CPF) ou 14 (CNPJ) números.');
+    const tel = safeString_(dados.telefone, 30, 'Telefone', false);
+    if (tel && !/^[0-9()+\-.\s]{8,30}$/.test(tel)) throw new Error('Telefone inválido.');
+    const obs = safeString_(dados.obs, 300, 'Observação do fornecedor', false);
+    const todos = terFornecedores_();
+    const igual = todos.find(f => terSemAc_(f.nome) === terSemAc_(nome));
+    if (igual) throw new Error('Já existe o fornecedor "' + igual.nome + '"' + (igual.ativo ? '. Escolha-o na lista.' : ' (inativo). Peça para reativar na aba FORNECEDORES.'));
+    const n = todos.reduce((m, f) => Math.max(m, Number(f.id.replace(/\D/g, '')) || 0), 0) + 1;
+    const id = 'FOR-' + ('000' + n).slice(-Math.max(4, String(n).length));
+    const sh = terAba_(TER.abaForn, TER.cabForn, true), linha = sh.getLastRow() + 1, agora = terAgora_();
+    sh.getRange(linha, 1, 1, TER.cabForn.length).setNumberFormat('@').setValues([[id, nome, tipo, doc, tel, obs, 'SIM', u.email, agora]]);
+    terAuditar_(u.email, 'FORNECEDOR', id, 'Fornecedor cadastrado: ' + nome + (tipo ? ' (' + tipo + ')' : ''));
+    SpreadsheetApp.flush();
+    return {id, nome, tipo, doc, telefone: tel, obs, ativo: true};
+  } finally { lock.releaseLock(); }
+}
+
+/** Confere e normaliza as parcelas do lançamento. Devolve as linhas da aba TERCEIROS_PARCELAS. */
+function terParcelas_(lista, forma, total, idLanc, antigas, u) {
+  if (!Array.isArray(lista) || !lista.length) throw new Error('Informe ao menos 1 parcela.');
+  if (lista.length > 24) throw new Error('No máximo 24 parcelas.');
+  if (forma === 'UNICO' && lista.length !== 1) throw new Error('Pagamento único tem 1 parcela.');
+  const hoje = terHoje_(), agora = terAgora_(), porNum = {};
+  (antigas || []).forEach(p => { porNum[p.numero] = p; });
+  let soma = 0;
+  const linhas = lista.map((p, i) => {
+    if (!p || typeof p !== 'object') throw new Error('Parcela inválida.');
+    const n = i + 1, rot = 'parcela ' + n;
+    const desc = safeString_(p.descricao, 80, 'Descrição da ' + rot, false) || (forma === 'UNICO' ? 'Pagamento único' : 'Parcela ' + n);
+    const valor = terValor_(p.valor, 'valor da ' + rot, 1e9);
+    soma += Math.round(valor * 100);
+    const venc = terData_(p.vencimento, 'vencimento da ' + rot, true, '2020-01-01', '2100-12-31');
+    let pago = 'NAO', dataPag = '', fp = '', comp = '', regPor = '', regEm = '';
+    if (p.pago) {
+      pago = 'SIM';
+      dataPag = terData_(p.dataPagamento, 'pagamento da ' + rot, true, '2020-01-01', hoje);
+      fp = String(p.forma || '');
+      if (TER.formas.indexOf(fp) < 0) throw new Error('Escolha a forma de pagamento da ' + rot + '.');
+      comp = terUrl_(p.comprovante, 'comprovante da ' + rot);
+      const ant = porNum[n];
+      // Pagamento que já estava registrado igual continua com quem/quando registrou.
+      if (ant && ant.pago && ant.dataPagamento === dataPag && ant.forma === fp && Math.abs(ant.valor - valor) < 0.005) { regPor = ant.registradoPor; regEm = ant.registradoEm; if (!comp) comp = ant.comprovante; }
+      else { regPor = u.email; regEm = agora; }
+    }
+    return [idLanc + '-P' + n, idLanc, n, desc, valor, venc, pago, dataPag, fp, comp, regPor, regEm];
+  });
+  if (soma !== Math.round(total * 100)) {
+    const dif = (Math.round(total * 100) - soma) / 100;
+    throw new Error('A soma das parcelas (R$ ' + (soma / 100).toFixed(2).replace('.', ',') + ') não bate com o valor total (R$ ' + total.toFixed(2).replace('.', ',') +
+      '). Diferença: R$ ' + dif.toFixed(2).replace('.', ',') + '.');
+  }
+  return linhas;
+}
+function terGravarParcelas_(sh, idLanc, linhas) {
+  const n = sh.getLastRow() - 1, ids = n > 0 ? sh.getRange(2, 2, n, 1).getValues().map(r => String(r[0])) : [];
+  const minhas = []; ids.forEach((v, i) => { if (v === idLanc) minhas.push(i + 2); });
+  const fmt = (row, q) => {
+    sh.getRange(row, 1, q, 4).setNumberFormat('@'); sh.getRange(row, 3, q, 1).setNumberFormat('0'); sh.getRange(row, 5, q, 1).setNumberFormat('#,##0.00');
+    sh.getRange(row, 6, q, 7).setNumberFormat('@'); };
+  linhas.forEach((l, i) => { if (i < minhas.length) { fmt(minhas[i], 1); sh.getRange(minhas[i], 1, 1, l.length).setValues([l]); } });
+  const novas = linhas.slice(minhas.length);
+  if (novas.length) { const ini = sh.getLastRow() + 1; fmt(ini, novas.length); sh.getRange(ini, 1, novas.length, novas[0].length).setValues(novas); }
+  minhas.slice(linhas.length).sort((a, b) => b - a).forEach(row => sh.deleteRow(row)); // parcelas que saíram na edição
+}
+
+/** Novo lançamento (sem payload.id) ou edição (com payload.id, só AGUARDANDO/REPROVADO, por quem lançou ou Zayda).
+ *  Grava TERCEIROS e TERCEIROS_PARCELAS juntos; se algo falhar na conferência, nada é gravado. */
+function salvarTerceiro(payload) {
+  const u = terUsuario_();
+  if (!payload || typeof payload !== 'object') throw new Error('Dados do lançamento inválidos.');
+  const lock = terLock_();
+  try {
+    const chave = /^[A-Za-z0-9-]{8,80}$/.test(String(payload.chaveSalvar || '')) ? 'ZAYDA_TER_' + payload.chaveSalvar : '';
+    let cache = null;
+    if (chave) { try { cache = CacheService.getScriptCache(); const feito = cache.get(chave); if (feito) return JSON.parse(feito); } catch (e) { cache = null; } }
+    const hoje = terHoje_(), agora = terAgora_();
+    const obraId = safeString_(payload.obra, 20, 'Obra', true);
+    if (!terObras_().some(o => o.id === obraId)) throw new Error('Obra não encontrada na lista. Escolha a obra novamente.');
+    const fornId = safeString_(payload.fornecedorId, 20, 'Fornecedor', true);
+    const forn = terFornecedores_().find(f => f.id === fornId && f.ativo);
+    if (!forn) throw new Error('Fornecedor não encontrado ou inativo. Escolha o fornecedor novamente.');
+    const tipo = String(payload.tipo || '');
+    if (TER.tipos.indexOf(tipo) < 0) throw new Error('Escolha o tipo.');
+    const desc = safeString_(payload.descricao, 300, 'Descrição', true);
+    let qtd = '';
+    if (payload.quantidade !== '' && payload.quantidade !== null && payload.quantidade !== undefined) {
+      qtd = dinheiro_(payload.quantidade, true);
+      if (qtd === null || !(qtd > 0) || qtd > 1e7) throw new Error('Quantidade inválida.');
+      qtd = Math.round(qtd * 1000) / 1000;
+    }
+    const un = String(payload.unidade || '');
+    if (un && TER.unidades.indexOf(un) < 0) throw new Error('Unidade inválida.');
+    const total = terValor_(payload.valor, 'valor total', 1e9);
+    const dataRef = terData_(payload.dataRef, 'data de referência', true, '2020-01-01', terSomaDias_(hoje, 366));
+    const nota = safeString_(payload.nota, 60, 'Nº da nota/orçamento', false);
+    const obs = safeString_(payload.obs, 800, 'Observação', false);
+    const anexo = terUrl_(payload.anexo, 'anexo');
+    const forma = payload.forma === 'PARCELADO' ? 'PARCELADO' : payload.forma === 'UNICO' ? 'UNICO' : '';
+    if (!forma) throw new Error('Escolha a forma de pagamento.');
+    const shL = terAba_(TER.abaLanc, TER.cabLanc, true), shP = terAba_(TER.abaParc, TER.cabParc, true);
+    const edit = safeString_(payload.id, 40, 'Lançamento', false);
+    let id, linha, criadoEm = agora, criadoPor = u.email, motivoAntigo = '', antigas = [], antes = null;
+    if (edit) {
+      const n = shL.getLastRow() - 1, ids = n > 0 ? shL.getRange(2, 1, n, 1).getValues().map(r => String(r[0])) : [];
+      const i = ids.indexOf(edit);
+      if (i < 0) throw new Error('Lançamento não encontrado.');
+      linha = i + 2; antes = terLancObj_(shL.getRange(linha, 1, 1, TER.cabLanc.length).getValues()[0]);
+      if (antes.conferencia === 'CONFERIDO') throw new Error('Este lançamento já foi conferido e não pode ser alterado. Só é possível registrar pagamento.');
+      if (antes.conferencia === 'CANCELADO') throw new Error('Este lançamento foi cancelado.');
+      if (antes.criadoPor.toLowerCase() !== u.email && !u.zayda) throw new Error('Só quem lançou ou um usuário da Zayda pode editar este lançamento.');
+      if (String(payload.atualizadoEm || '') !== antes.atualizadoEm) throw new Error('Este lançamento foi alterado por outra pessoa depois que você abriu. Feche e abra de novo.');
+      id = edit; criadoEm = antes.criadoEm; criadoPor = antes.criadoPor; motivoAntigo = antes.motivo;
+      antigas = terLinhas_(TER.abaParc, TER.cabParc).filter(r => String(r[1]) === id).map(terParcelaObj_);
+    } else {
+      const existentes = new Set(shL.getLastRow() > 1 ? shL.getRange(2, 1, shL.getLastRow() - 1, 1).getValues().map(r => String(r[0])) : []);
+      const dia = Utilities.formatDate(new Date(), FUSO_ZAYDA, 'yyyyMMdd'), ab = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      for (let t = 0; t < 50 && (!id || existentes.has(id)); t++) {
+        let s = ''; for (let k = 0; k < 4; k++) s += ab.charAt(Math.floor(Math.random() * ab.length)); id = 'TER-' + dia + '-' + s; }
+      if (existentes.has(id)) throw new Error('Não foi possível gerar o código. Tente de novo.');
+      linha = shL.getLastRow() + 1;
+    }
+    const parcelas = terParcelas_(payload.parcelas, forma, total, id, antigas, u);
+    // REPROVADO editado volta para AGUARDANDO: limpa quem/quando conferiu; o motivo antigo fica na AUDITORIA.
+    const row = [id, criadoEm, criadoPor, obraId, forn.id, forn.nome, tipo, desc, qtd, un, total, dataRef, nota, anexo, forma,
+      'AGUARDANDO', '', '', '', obs, agora, u.email];
+    shL.getRange(linha, 1, 1, 8).setNumberFormat('@'); shL.getRange(linha, 9, 1, 1).setNumberFormat('0.###'); shL.getRange(linha, 10, 1, 1).setNumberFormat('@');
+    shL.getRange(linha, 11, 1, 1).setNumberFormat('#,##0.00'); shL.getRange(linha, 12, 1, 11).setNumberFormat('@');
+    shL.getRange(linha, 1, 1, row.length).setValues([row]);
+    terGravarParcelas_(shP, id, parcelas);
+    const resumo = forn.nome + ' · ' + tipo + ' · R$ ' + total.toFixed(2).replace('.', ',') + ' · obra ' + obraId + ' · ' + parcelas.length + ' parcela(s)';
+    if (!edit) terAuditar_(u.email, 'TERCEIRO_CRIACAO', id, 'Lançamento criado: ' + resumo);
+    else terAuditar_(u.email, 'TERCEIRO_EDICAO', id, 'Lançamento editado' + (antes.conferencia === 'REPROVADO' ? ' (estava REPROVADO por ' + antes.conferidoPor +
+      (antes.conferidoEm ? ' em ' + antes.conferidoEm : '') + '; motivo: ' + (motivoAntigo || '—') + '; voltou para AGUARDANDO)' : '') + ': ' + resumo);
+    SpreadsheetApp.flush();
+    const resultado = {id, novo: !edit, atualizadoEm: agora};
+    if (cache) { try { cache.put(chave, JSON.stringify(resultado), 600); } catch (e) {} }
+    return resultado;
+  } finally { lock.releaseLock(); }
+}
+
+/** Parcela e lançamento a partir do ID_PARCELA (dentro da trava). */
+function terParcelaLinha_(idParcela) {
+  const idp = safeString_(idParcela, 60, 'Parcela', true);
+  const shP = terAba_(TER.abaParc, TER.cabParc, false), shL = terAba_(TER.abaLanc, TER.cabLanc, false);
+  if (!shP || !shL || shP.getLastRow() < 2) throw new Error('Parcela não encontrada.');
+  const ids = shP.getRange(2, 1, shP.getLastRow() - 1, 1).getValues().map(r => String(r[0])), i = ids.indexOf(idp);
+  if (i < 0) throw new Error('Parcela não encontrada. Atualize a tela.');
+  const linha = i + 2, p = terParcelaObj_(shP.getRange(linha, 1, 1, TER.cabParc.length).getValues()[0]);
+  const lids = shL.getLastRow() > 1 ? shL.getRange(2, 1, shL.getLastRow() - 1, 1).getValues().map(r => String(r[0])) : [], j = lids.indexOf(p.lanc);
+  if (j < 0) throw new Error('Lançamento da parcela não encontrado.');
+  return {shP, linha, p, l: terLancObj_(shL.getRange(j + 2, 1, 1, TER.cabLanc.length).getValues()[0])};
+}
+/** Marca uma parcela como paga. dados = {data:'aaaa-mm-dd', forma, comprovante}. Vale em AGUARDANDO, REPROVADO ou CONFERIDO. */
+function registrarPagamento(idParcela, dados) {
+  const u = terUsuario_();
+  dados = dados && typeof dados === 'object' ? dados : {};
+  const lock = terLock_();
+  try {
+    const x = terParcelaLinha_(idParcela);
+    if (['AGUARDANDO', 'REPROVADO', 'CONFERIDO'].indexOf(x.l.conferencia) < 0) throw new Error('Este lançamento foi cancelado: não aceita pagamento.');
+    if (x.p.pago) throw new Error('Esta parcela já está paga.');
+    const data = terData_(dados.data, 'data do pagamento', true, '2020-01-01', terHoje_());
+    const forma = String(dados.forma || '');
+    if (TER.formas.indexOf(forma) < 0) throw new Error('Escolha a forma de pagamento.');
+    const comp = terUrl_(dados.comprovante, 'comprovante'), agora = terAgora_();
+    x.shP.getRange(x.linha, 7, 1, 6).setNumberFormat('@').setValues([['SIM', data, forma, comp, u.email, agora]]);
+    terAuditar_(u.email, 'TERCEIRO_PAGAMENTO', x.l.id, 'Parcela ' + x.p.id + ' (' + x.p.descricao + ', R$ ' + x.p.valor.toFixed(2).replace('.', ',') + ') paga em ' + data + ' por ' + forma + (comp ? ' · comprovante anexado' : ''));
+    SpreadsheetApp.flush();
+    return {ok: true, id: x.p.id, data, forma, comprovante: comp, registradoPor: u.email, registradoEm: agora};
+  } finally { lock.releaseLock(); }
+}
+/** Desfaz o pagamento de uma parcela: só no mesmo dia em que foi registrado, por quem registrou ou usuário da Zayda. */
+function desfazerPagamento(idParcela) {
+  const u = terUsuario_();
+  const lock = terLock_();
+  try {
+    const x = terParcelaLinha_(idParcela);
+    if (!x.p.pago) throw new Error('Esta parcela não está paga.');
+    if (x.l.conferencia === 'CANCELADO') throw new Error('Este lançamento foi cancelado.');
+    if (String(x.p.registradoEm).slice(0, 10) !== terHoje_()) throw new Error('Só é possível desfazer o pagamento no mesmo dia em que foi registrado.');
+    if (x.p.registradoPor.toLowerCase() !== u.email && !u.zayda) throw new Error('Só quem registrou o pagamento ou um usuário da Zayda pode desfazer.');
+    x.shP.getRange(x.linha, 7, 1, 6).setNumberFormat('@').setValues([['NAO', '', '', '', '', '']]);
+    terAuditar_(u.email, 'TERCEIRO_PAGAMENTO_DESFEITO', x.l.id, 'Pagamento desfeito na parcela ' + x.p.id + ' (registrado por ' + x.p.registradoPor + ' em ' + x.p.registradoEm +
+      ', pago em ' + x.p.dataPagamento + ' por ' + x.p.forma + ')');
+    SpreadsheetApp.flush();
+    return {ok: true, id: x.p.id};
+  } finally { lock.releaseLock(); }
+}
+
+/** Pasta do Drive para notas, orçamentos e comprovantes. Uma pasta comum (Script Property TER_PASTA_ID), criada pelo primeiro
+ *  usuário e compartilhada com os editores da planilha. Se este usuário não conseguir gravar nela, usa uma pasta dele mesmo
+ *  com o mesmo nome, também compartilhada com os editores. */
+function terPastaPropria_() {
+  const up = PropertiesService.getUserProperties();
+  let pasta = null;
+  try { const id = up.getProperty('TER_PASTA_ID'); if (id) pasta = DriveApp.getFolderById(id); } catch (e) { pasta = null; }
+  if (pasta) return pasta;
+  pasta = DriveApp.createFolder(TER.pasta);
+  try {
+    const eu = String(Session.getActiveUser().getEmail() || '').toLowerCase();
+    const editores = SpreadsheetApp.getActiveSpreadsheet().getEditors().map(x => String(x.getEmail() || '').toLowerCase()).filter(e => e && e !== eu);
+    if (editores.length) pasta.addEditors(editores);
+  } catch (e) { console.error('Pasta não compartilhada: ' + e.message); }
+  up.setProperty('TER_PASTA_ID', pasta.getId());
+  const sp = PropertiesService.getScriptProperties();
+  if (!sp.getProperty('TER_PASTA_ID')) sp.setProperty('TER_PASTA_ID', pasta.getId());
+  return pasta;
+}
+/** Envia foto/PDF da nota, orçamento ou comprovante. arq = {nome, tipo (mime), dados (base64)}. Devolve {url, nome}. */
+function anexarArquivoTerceiro(arq) {
+  const u = terUsuario_();
+  if (!arq || typeof arq !== 'object') throw new Error('Arquivo inválido.');
+  const tipo = String(arq.tipo || '').toLowerCase();
+  const ok = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'application/pdf'];
+  if (ok.indexOf(tipo) < 0) throw new Error('Envie uma foto (JPG, PNG, WEBP, HEIC) ou um PDF.');
+  const b64 = String(arq.dados || '');
+  if (!b64 || !/^[A-Za-z0-9+\/=]+$/.test(b64)) throw new Error('Arquivo inválido.');
+  if (b64.length * 3 / 4 > TER.maxArquivo + 3) throw new Error('O arquivo passa de 10 MB.');
+  const bytes = Utilities.base64Decode(b64);
+  if (!bytes.length || bytes.length > TER.maxArquivo) throw new Error('O arquivo passa de 10 MB.');
+  const limpo = String(arq.nome || 'arquivo').replace(/[\\\/:*?"<>|#%\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'arquivo';
+  const nome = Utilities.formatDate(new Date(), FUSO_ZAYDA, 'yyyy-MM-dd HHmmss') + ' ' + u.email.split('@')[0] + ' - ' + limpo;
+  const blob = Utilities.newBlob(bytes, tipo, nome);
+  let arquivo = null;
+  const comum = PropertiesService.getScriptProperties().getProperty('TER_PASTA_ID');
+  if (comum) { try { arquivo = DriveApp.getFolderById(comum).createFile(blob); } catch (e) { arquivo = null; } }
+  if (!arquivo) arquivo = terPastaPropria_().createFile(blob);
+  terAuditar_(u.email, 'TERCEIRO_ANEXO', '', 'Arquivo enviado para a pasta "' + TER.pasta + '": ' + nome);
+  return {url: arquivo.getUrl(), nome: limpo};
 }
