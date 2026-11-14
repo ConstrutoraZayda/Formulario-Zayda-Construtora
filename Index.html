@@ -425,6 +425,8 @@ body.com-atalho #message.toast{bottom:calc(76px + env(safe-area-inset-bottom,0px
 <style>
 
 /* [ZAYDA 2.7] Etapa 2A: busca, card do resultado, etapas, mais detalhes, sucesso e acessibilidade */
+.res-cab.res-cat{text-transform:none;letter-spacing:0}
+.res-erro{display:flex;flex-direction:column;align-items:flex-start;gap:10px}.res-erro button{min-height:44px}
 .res-cab{padding:9px 14px;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--grey);background:#f7faf8;border-bottom:1px solid #edf2f5}
 .results .product{align-items:center;min-height:64px}
 .results .pinfo{min-width:0;flex:1}
@@ -535,7 +537,7 @@ zTemaAplicar(zTemaLer());
 <main>
 <nav class="etapas" id="etapasNav" aria-label="Etapas do pedido"><a href="#" data-etapa="1" data-rot="1 Identificação"><i>1</i>Identificação</a><span aria-hidden="true">·</span><a href="#" data-etapa="2" data-rot="2 Materiais"><i>2</i>Materiais</a><span aria-hidden="true">·</span><a href="#" data-etapa="3" data-rot="3 Revisar e salvar"><i>3</i>Revisar e salvar</a></nav><div id="rascBox" class="rasc" role="status" hidden></div><div id="fechadoBox" role="status" hidden></div><div id="faltaBox" role="status" hidden></div><p id="avisoSalvo" hidden>Pedido salvo não pode ser alterado. Se faltou algum material, faça um novo pedido.</p><!-- [ZAYDA 1.6] situação da entrega do pedido aberto -->
 <section class="panel" id="secIdent"><h2>1. Identificação e entrega <span class="badge" id="orderBadge">Novo pedido</span></h2><div class="fields">
-<div><label for="atendente">Nome do(a) atendente *</label><input id="atendente" required autocomplete="name" placeholder="Quem está atendendo"></div>
+<div><label for="atendente">Nome do(a) atendente *</label><input id="atendente" required autocomplete="off" placeholder="Quem está atendendo"></div>
 <div><label for="entregador">Nome(s) do(s) entregador(es) *</label><input id="entregador" required placeholder="Ex.: Carlos e João"></div>
 <div class="full obrabox" id="obraBox"><label for="obraBusca">Obra *</label><span class="obrain"><input id="obraBusca" autocomplete="off" spellcheck="false" placeholder="Toque para ver todas as obras ou digite para buscar" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="obraPop"><button type="button" class="obralimpa" id="obraLimpa" aria-label="Deixar a obra em branco" title="Deixar em branco" hidden>×</button><button type="button" class="obraseta" id="obraSeta" tabindex="-1" aria-label="Mostrar todas as obras">▾</button><ul class="obrapop" id="obraPop" role="listbox" hidden></ul></span><div class="obraok" id="obraOk" role="status" hidden></div></div>
 <div class="full" id="endBox" hidden><label for="endereco">Endereço completo de entrega *</label><input id="endereco" required placeholder="Rua, número, lote e bairro"></div>
@@ -548,11 +550,11 @@ zTemaAplicar(zTemaLer());
 <p class="muted" style="margin:-6px 0 10px">Marque os itens que chegaram na obra e confira as quantidades. O custo entra sozinho no controle, pelo preço de cada item no pedido.</p>
 <details id="histEnt" hidden><summary id="histEntTit"></summary><div id="histEntLista"></div></details><div id="entregaItens"></div>
 <div class="entrega-fields"><div><label for="entregaData">Data da entrega *</label><input id="entregaData" type="date"></div><div><label for="entregaObs">Observações da entrega (opcional)</label><input id="entregaObs" placeholder="Ex.: faltou 1 saco, nota nº 123"></div></div>
-<div class="assin-box"><div class="entrega-nomes"><div><label for="recebidoPor">Recebido por (nome de quem recebeu na obra) *</label><input id="recebidoPor" autocomplete="name" placeholder="Nome completo"></div><div><label for="entreguePor">Entregue por (nome de quem levou o material) *</label><input id="entreguePor" autocomplete="off" placeholder="Nome de quem levou"></div></div>
+<div class="assin-box"><div class="entrega-nomes"><div><label for="recebidoPor">Recebido por (nome de quem recebeu na obra) *</label><input id="recebidoPor" autocomplete="off" placeholder="Nome completo"></div><div><label for="entreguePor">Entregue por (nome de quem levou o material) *</label><input id="entreguePor" autocomplete="off" placeholder="Nome de quem levou"></div></div>
 </div><!-- [ZAYDA 1.4] quadro de assinatura removido: a assinatura é feita no papel impresso -->
 <div class="btn-row" style="margin-top:14px"><button class="primary" id="entregaBtn" type="button" onclick="confirmarEntrega()">Marcar como entregue</button></div>
 </section>
-<section class="panel searchpanel" id="painelBusca"><h2><span id="numBusca">2</span>. Pesquisar materiais</h2><p class="small catmeta" id="catalogmeta">Carregando catálogo...</p><div class="searchbox"><input id="busca" placeholder="Pesquisar nome, código ou categoria..." aria-label="Pesquisar produto"><select id="categoria"><option value="">Todas as categorias</option></select></div><div id="results" class="results"><div class="skel-lista" aria-busy="true" aria-label="Carregando"><div class="skel-lin"><i></i><i></i><i></i></div><div class="skel-lin"><i></i><i></i><i></i></div><div class="skel-lin"><i></i><i></i><i></i></div><div class="skel-lin"><i></i><i></i><i></i></div></div></div></section>
+<section class="panel searchpanel" id="painelBusca"><h2><span id="numBusca">2</span>. Pesquisar materiais</h2><p class="small catmeta" id="catalogmeta">Carregando catálogo...</p><div class="searchbox"><input id="busca" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Pesquisar nome, código ou categoria..." aria-label="Pesquisar produto"><select id="categoria" aria-label="Categoria"><option value="">Todas as categorias</option></select></div><div id="results" class="results"><div class="skel-lista" aria-busy="true" aria-label="Carregando"><div class="skel-lin"><i></i><i></i><i></i></div><div class="skel-lin"><i></i><i></i><i></i></div><div class="skel-lin"><i></i><i></i><i></i></div><div class="skel-lin"><i></i><i></i><i></i></div></div></div></section>
 </main>
 <aside class="sticky"><section class="panel" id="relacaoCard"><h2>3. Relação dos materiais <span id="counter" class="badge">0 itens</span></h2><div id="cart" class="empty">Escolha os materiais pesquisando no catálogo.</div><div id="pending" class="warning" hidden></div><div class="total"><span>Subtotal com preços definidos</span><strong id="total">R$ 0,00</strong></div><div class="naosalvo" id="naoSalvo" role="status" hidden>Alterações não salvas</div><div class="btn-row actions"><button class="primary" id="saveBtn" type="button" onclick="save()">Salvar solicitação</button><button class="secondary" id="cancelarBtn" type="button" onclick="pedirCancelamento()" hidden>Cancelar pedido</button><button class="secondary" id="encerrarBtn" type="button" onclick="pedirEncerramento()" hidden>Encerrar o que falta</button><button class="secondary" type="button" onclick="printRelation()">Imprimir relação</button></div><p class="muted" id="notaValor">O valor só soma os itens com preço preenchido. Produtos “A cotar” precisam de preço para salvar.</p></section></aside>
 </div>
@@ -714,14 +716,18 @@ const normProd=p=>{p.preco=p.semPreco?null:precoOuNull(p.preco);p.semPreco=p.pre
 const nItens=n=>n+(n===1?' item':' itens');
 function notify(msg,error=false){const el=document.getElementById('message');el.textContent=msg;el.className='message'+(error?' error':'');el.style.display='block';el.scrollIntoView({behavior:'smooth',block:'nearest'});}
 function err(e){notify(e&&e.message?e.message:String(e),true);atualizarSujo();}
+let BOOT_OK=false,BOOT_ERRO=false; // [ZAYDA 3.0] dados do servidor (mais pedidos) já chegaram / falharam
 function boot(){presenca();const loc=lerCatalogoLocal();if(loc)setTimeout(()=>{if(!produtos.length)aplicarCatalogo(loc.produtos,loc.categorias);},0); /* [ZAYDA 2.6] catálogo guardado: aparece na hora (logo depois de o script terminar de carregar) */
- console.time('getBootstrap');google.script.run.withSuccessHandler(data=>{console.timeEnd('getBootstrap');user=data.user;recentes=data.recentes;POPULAR=data.popular||{};
+ pedirBootstrap(loc);}
+function pedirBootstrap(loc){BOOT_ERRO=false;if(!produtos.length)renderResults();
+ console.time('getBootstrap');google.script.run.withSuccessHandler(data=>{console.timeEnd('getBootstrap');BOOT_OK=true;user=data.user;recentes=data.recentes;POPULAR=data.popular||{};
  if(data.catalogoJson){try{const k=JSON.parse(data.catalogoJson);aplicarCatalogo(k.produtos,k.categorias);guardarCatalogoLocal(data.catVersao,k.produtos,k.categorias);}catch(e){notify('Não foi possível ler o catálogo. Recarregue a página.',true);}}document.getElementById('identity').textContent=user.nome?'Olá, '+user.nome+(user.empresaUsuario?' · '+user.empresaUsuario:''):user.email; /* [ZAYDA 2.1] nome da aba USUARIOS */
  renderRecent();carregarObras();carregarIndice();rascOferecer();
-}).withFailureHandler(err).getBootstrap(loc?loc.v:'');}
+ renderResults(); /* [ZAYDA 3.0] catálogo sem mudança de versão: os "Mais pedidos" chegaram agora e a lista é redesenhada aqui (antes só voltava ao mexer na obra) */
+}).withFailureHandler(e=>{BOOT_ERRO=!produtos.length;renderResults();err(e);}).getBootstrap(loc?loc.v:'');}
 /* [ZAYDA 2.5] Celular: lista sem rolagem própria, 20 resultados por vez. Nova busca ou categoria: volta ao começo. */
 let RES_N=20;const ehCelular=()=>!!(window.matchMedia&&matchMedia('(max-width:900px)').matches);
-function novaBusca(){RES_N=20;renderResults();const r=document.getElementById('results');r.scrollTop=0;
+function novaBusca(){RES_N=20;CAT_N=50;renderResults();const r=document.getElementById('results');r.scrollTop=0;
  if(ehCelular()){const p=document.getElementById('painelBusca').getBoundingClientRect();if(p.top<0)document.getElementById('painelBusca').scrollIntoView({block:'start'});}}
 /* ======================= [ZAYDA 2.6] CATÁLOGO GUARDADO E RASCUNHO =======================
    Catálogo: guardado no aparelho com a versão; abre na hora e o servidor só manda os produtos quando a versão muda.
@@ -729,9 +735,15 @@ function novaBusca(){RES_N=20;renderResults();const r=document.getElementById('r
 const CAT_LOCAL='zaydaCatalogo';
 function lerCatalogoLocal(){try{const x=JSON.parse(localStorage.getItem(CAT_LOCAL)||'null');if(x&&x.v&&Array.isArray(x.produtos)&&Array.isArray(x.categorias))return x;}catch(e){}return null;}
 function guardarCatalogoLocal(v,produtosNovos,cats){try{localStorage.setItem(CAT_LOCAL,JSON.stringify({v,produtos:produtosNovos,categorias:cats}));}catch(e){try{localStorage.removeItem(CAT_LOCAL);}catch(x){}}}
-function aplicarCatalogo(lista,cats){produtos=(lista||[]).map(normProd);categories=cats||[];
+/* [ZAYDA 3.0] Categoria: comparação sem maiúsculas, acentos e espaços sobrando. O seletor mostra só as categorias que existem no catálogo ativo. */
+const catChave=c=>String(c==null?'':c).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+let CAT_NOME={},CAT_N=50;
+function aplicarCatalogo(lista,cats){produtos=(lista||[]).map(normProd);produtos.forEach(p=>{p._cat=catChave(p.categoria);});
+ const cont={};produtos.forEach(p=>{if(!p._cat)return;const nome=String(p.categoria).replace(/\s+/g,' ').trim(),c=cont[p._cat]=cont[p._cat]||{};c[nome]=(c[nome]||0)+1;});
+ CAT_NOME={};Object.keys(cont).forEach(k=>{CAT_NOME[k]=Object.keys(cont[k]).sort((a,b)=>cont[k][b]-cont[k][a])[0];}); // nome mais usado no catálogo
+ categories=Object.keys(CAT_NOME).sort((a,b)=>CAT_NOME[a].localeCompare(CAT_NOME[b],'pt-BR'));
  document.getElementById('catalogmeta').textContent=`${produtos.length} produtos cadastrados • ${produtos.filter(p=>!semPrecoV(p.preco)).length} com preço de referência`;
- const sel=document.getElementById('categoria'),atual=sel.value;sel.innerHTML='<option value="">Todas as categorias</option>'+categories.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');sel.value=categories.includes(atual)?atual:'';
+ const sel=document.getElementById('categoria'),atual=catChave(sel.value);sel.innerHTML='<option value="">Todas as categorias</option>'+categories.map(c=>`<option value="${esc(c)}">${esc(CAT_NOME[c])}</option>`).join('');sel.value=categories.includes(atual)?atual:'';
  renderResults();}
 const RASC_DIAS=7;let rascT=0,RASC_OFERTA=false;
 const rascChave=()=>user&&user.email?'zaydaRascunho:'+String(user.email).toLowerCase():'';
@@ -793,13 +805,25 @@ function sugestoes(){let ob=null;try{ob=OBRA_SEL&&MODO_OBRA==='lista'?OBRA_SEL:n
 function cardProduto(p,q){const c=cart.find(i=>i.sku===p.sku),sp=semPrecoV(p.preco),nome=String(p.produto||'');
  return `<div class="product"><div class="pinfo"><strong class="pnome" title="${esc(nome)}">${realce(nome,q)}</strong><small>${esc(p.sku)} · ${esc(p.categoria)} · ${esc(p.unidade)}${p._gen?' · <span class="etq-gen">genérico · a cotar</span>':''}</small>${c?`<small class="narel">✓ ${fmtQ(c.quantidade)} ${esc(c.unidade)} na relação</small>`:''}</div>
  <div class="pacao"><span class="ppreco${sp?' cotar':''}">${sp?'A cotar':brl(p.preco)}</span><button type="button" class="padd" data-add="${esc(p.sku)}" aria-label="${esc((c?'Somar 1 em ':'Adicionar ')+nome)}"${c&&!regraItem(c).qtd?' disabled':''}>${c?'+1':'+'}</button></div></div>`;}
-function renderResults(){const box=document.getElementById('results'),q=document.getElementById('busca').value.trim(),cat=document.getElementById('categoria').value;
- if(!produtos.length){box.innerHTML=skeleton(4);return;}
- buscaIndexar();let lista,cab='',vazio='';
- if(!q&&!cat){const s=sugestoes();lista=s.itens;cab=s.titulo?`<div class="res-cab">${esc(s.titulo)}</div>`:'';if(!lista.length)vazio='<div class="empty">Digite o nome ou o código do material.</div>';}
- else{const ws=tokensBusca(q);lista=ordenarBusca(produtos.filter(p=>(!cat||p.categoria===cat)&&ws.every(w=>p._n.indexOf(' '+w)>=0)),ws);
-  cab=`<div class="res-cab">${lista.length===1?'1 resultado':lista.length.toLocaleString('pt-BR')+' resultados'}</div>`;
-  if(!lista.length){cab='';vazio=`<div class="empty">Nada encontrado para '${esc(q||cat)}'. Tente 'tubo 25' ou o código LOJA-…</div>`;}}
+function renderResults(){const box=document.getElementById('results'),q=document.getElementById('busca').value.trim(),cat=catChave(document.getElementById('categoria').value);
+ if(!produtos.length){box.innerHTML=BOOT_ERRO?'<div class="empty res-erro"><span>Não foi possível carregar o catálogo.</span><button type="button" class="secondary" id="catDeNovo">Tentar de novo</button></div>':'<div class="res-cab">Carregando catálogo...</div>'+skeleton(4);
+  const t=document.getElementById('catDeNovo');if(t)t.onclick=()=>{t.disabled=true;t.textContent='Carregando...';pedirBootstrap(lerCatalogoLocal());};return;}
+ buscaIndexar();let lista,cab='',vazio='',porCat=false;const nomeCat=cat?CAT_NOME[cat]||document.getElementById('categoria').value:'';
+ if(!q&&!cat){const s=sugestoes();lista=s.itens;cab=s.titulo?`<div class="res-cab">${esc(s.titulo)}</div>`:'';
+  if(!lista.length){if(!BOOT_OK){cab='<div class="res-cab">Mais pedidos</div>';vazio=skeleton(3);} /* mais pedidos ainda chegando do servidor */
+   else{porCat=true;lista=produtos.slice().sort((a,b)=>String(a.produto).localeCompare(String(b.produto),'pt-BR'));cab=`<div class="res-cab res-cat">${lista.length.toLocaleString('pt-BR')} materiais no catálogo</div>`;}}}
+ else if(!q){ /* [ZAYDA 3.0] só a categoria: primeiro os mais pedidos dela, depois o restante em ordem alfabética */
+  porCat=true;const pop=p=>POPULAR[p.sku]||0;
+  lista=produtos.filter(p=>p._cat===cat).sort((a,b)=>pop(b)-pop(a)||String(a.produto).localeCompare(String(b.produto),'pt-BR'));
+  cab=`<div class="res-cab res-cat">${lista.length===1?'1 material':lista.length.toLocaleString('pt-BR')+' materiais'} em ${esc(nomeCat)}</div>`;
+  if(!lista.length){cab='';vazio='<div class="empty">Nenhum material nesta categoria.</div>';}}
+ else{const ws=tokensBusca(q);lista=ordenarBusca(produtos.filter(p=>(!cat||p._cat===cat)&&ws.every(w=>p._n.indexOf(' '+w)>=0)),ws);
+  cab=`<div class="res-cab${cat?' res-cat':''}">${lista.length===1?'1 resultado':lista.length.toLocaleString('pt-BR')+' resultados'}${cat?' em '+esc(nomeCat):''}</div>`;
+  if(!lista.length){cab='';vazio=cat?`<div class="empty">Nada encontrado para '${esc(q)}' em ${esc(nomeCat)}.</div>`:`<div class="empty">Nada encontrado para '${esc(q)}'. Tente 'tubo 25' ou o código LOJA-…</div>`;}}
+ if(porCat){const display=lista.slice(0,CAT_N);
+  box.innerHTML=cab+(vazio||display.map(p=>cardProduto(p,q)).join(''))+(lista.length>CAT_N?`<button type="button" class="vermais-res" id="verMaisRes">Mostrar mais <small>(mostrando ${CAT_N} de ${lista.length.toLocaleString('pt-BR')})</small></button>`:'');
+  const vm=document.getElementById('verMaisRes');if(vm)vm.onclick=()=>{CAT_N+=50;renderResults();};
+  box.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>add(b.dataset.add));return;}
  const lim=ehCelular()?RES_N:60,display=lista.slice(0,lim);
  box.innerHTML=cab+(vazio||display.map(p=>cardProduto(p,q)).join(''))+(lista.length>lim?(ehCelular()?`<button type="button" class="vermais-res" id="verMaisRes">Ver mais 20 <small>(mostrando ${lim} de ${lista.length})</small></button>`:`<div class="empty">Mostrando 60 de ${lista.length}. Digite mais letras para filtrar.</div>`):'');
  const vm=document.getElementById('verMaisRes');if(vm)vm.onclick=()=>{RES_N+=20;renderResults();};
@@ -860,7 +884,8 @@ document.getElementById('entregaPanel').addEventListener('input',()=>{entregaMex
 document.getElementById('entregaPanel').addEventListener('change',()=>{entregaMexida=true;});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')verificarVersao();});
 /* [ZAYDA 2.2] Presença: o painel sabe quem está com o formulário aberto. Ao abrir, a cada 60 s com a página visível e ao voltar a ficar visível; em segundo plano não chama. Erros são ignorados. */
-let buscaDeb=0;document.getElementById('busca').addEventListener('input',()=>{clearTimeout(buscaDeb);buscaDeb=setTimeout(novaBusca,120);}); // [ZAYDA 2.7] 120 ms
+let buscaDeb=0;document.getElementById('busca').addEventListener('input',()=>{clearTimeout(buscaDeb);buscaDeb=setTimeout(novaBusca,120);});
+document.getElementById('categoria').addEventListener('change',()=>{clearTimeout(buscaDeb);novaBusca();}); // [ZAYDA 3.0] trocar a categoria redesenha a lista e volta ao topo // [ZAYDA 2.7] 120 ms
 document.getElementById('busca').addEventListener('keydown',e=>{if(e.key!=='Enter'||ehCelular())return;e.preventDefault();clearTimeout(buscaDeb);novaBusca();const b=document.querySelector('#results [data-add]');if(b&&!b.disabled){b.click();document.getElementById('busca').focus();}}); // computador: Enter adiciona o 1º resultadodocument.getElementById('categoria').addEventListener('change',novaBusca);
 function presenca(){if(document.visibilityState!=='visible')return;try{google.script.run.withSuccessHandler(()=>{}).withFailureHandler(()=>{}).presencaFormulario();}catch(e){}}
 setInterval(presenca,60000);
@@ -1621,6 +1646,16 @@ document.getElementById('message').addEventListener('click',()=>{clearTimeout(to
 let pedLarg=window.innerWidth;window.addEventListener('resize',()=>{const c=window.innerWidth<=900,a=pedLarg<=900;pedLarg=window.innerWidth;if(c!==a&&TELA==='pedidos')pedRender();});
 new MutationObserver(contaCartao).observe(T$('identity'),{childList:true,characterData:true,subtree:true}); // nome chega depois do carregamento
 contaCartao();fichaEntrega();
+/* [ZAYDA 3.0] Sem sugestões do navegador por cima dos campos de texto livre (atendente, entregador, obra, busca, observações, outros fornecedores...).
+   autocomplete="off" e um nome de campo neutro e novo a cada abertura: o navegador não liga o campo às listas antigas nem ao "Gerenciar endereços".
+   Data, arquivo e caixas de marcar ficam como estão. As listas do próprio formulário (obras, resultados) não mudam. */
+const SEM_AUTO_SEL='input:not([type=date]):not([type=file]):not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=range]):not([type=color]),textarea';
+const SEM_AUTO_RAND=Math.random().toString(36).slice(2,8);let SEM_AUTO_N=0;
+function semAutoCampo(el){if(el.dataset.zac)return;el.dataset.zac='1';el.setAttribute('autocomplete','off');el.setAttribute('name','zf'+SEM_AUTO_RAND+'x'+(++SEM_AUTO_N));}
+function semAuto(raiz){if(!raiz||!raiz.querySelectorAll)return;if(raiz.matches&&raiz.matches(SEM_AUTO_SEL))semAutoCampo(raiz);raiz.querySelectorAll(SEM_AUTO_SEL).forEach(semAutoCampo);}
+semAuto(document.body);
+try{new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)semAuto(n);}))).observe(document.body,{childList:true,subtree:true});}catch(e){}
+document.addEventListener('focusin',e=>{const t=e.target;if(t&&t.matches&&t.matches(SEM_AUTO_SEL))semAutoCampo(t);},true);
 /* ======================= TEMA: Automático, Claro ou Escuro =======================
    zTemaLer e zTemaAplicar ficam no início da página (rodam antes de a tela aparecer); aqui ficam os botões e a troca. */
 let TEMA=zTemaLer(),temaTimer=null;
