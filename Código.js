@@ -31,7 +31,10 @@ const PREFIXO_PEDIDO = 'ZAYDA-';
 // Antes era getValues().slice(1), que escondia o 1º pedido porque PEDIDOS e ITENS_PEDIDO
 // não têm cabeçalho. Assim funciona com ou sem cabeçalho na linha 1.
 function registros_(key) {
-  return s_(key).getDataRange().getValues().filter(r => String(r[0] || '').indexOf(PREFIXO_PEDIDO) === 0);
+  // [ZAYDA 2.6] Só as colunas usadas (PEDIDOS A:O, ITENS_PEDIDO A:K), até a última linha com dados: o mesmo resultado do getDataRange, com leitura menor.
+  const sh = s_(key), n = sh.getLastRow(), cols = Math.min(key === 'itens' ? 11 : 15, sh.getMaxColumns());
+  if (!n) return [];
+  return sh.getRange(1, 1, n, cols).getValues().filter(r => String(r[0] || '').indexOf(PREFIXO_PEDIDO) === 0);
 }
 
 // [ZAYDA 1.1] Data/hora sempre como texto 'yyyy-MM-dd HH:mm:ss'. Antes, String(Date) gravava
@@ -67,7 +70,8 @@ function s_(key) {
 }
 
 function config_() {
-  const rows = s_('config').getDataRange().getValues().slice(1);
+  const sh = s_('config'), n = sh.getLastRow(); // [ZAYDA 2.6] só as colunas A:B
+  const rows = n > 1 ? sh.getRange(2, 1, n - 1, Math.min(2, sh.getMaxColumns())).getValues() : [];
   const out={}; rows.forEach(r => { if(r[0])out[String(r[0]).trim()] = String(r[1] || '').trim(); });
   return out;
 }
@@ -154,19 +158,23 @@ function dinheiro_(x, nullable) {
 }
 
 function catalogo_() {
-  const dados=s_('catalogo').getDataRange().getValues().slice(1);
+  const sh=s_('catalogo'), n=sh.getLastRow(); // [ZAYDA 2.6] só as colunas A:L
+  const dados=n>1?sh.getRange(2,1,n-1,Math.min(12,sh.getMaxColumns())).getValues():[];
   return dados.filter(r=>r[0] && String(r[11] || '').toUpperCase() !== 'NAO').map(r=>({
     sku:String(r[0]).trim(), produto:String(r[1] || '').trim(), categoria:String(r[2] || 'Outros'),
     subcategoria:String(r[3] || ''), unidade:String(r[4] || 'UN'),
     preco:dinheiro_(r[5],true),statusPreco:String(r[6] || ''),fontePreco:String(r[7] || '')
-  }));
+  })).map(p=>{ p.semPreco = p.preco === null || !(p.preco > 0); if (p.semPreco) p.preco = null; return p; }); // [ZAYDA 2.5] preço vazio: semPreco (o null pode chegar como undefined no navegador)
 }
 
-function getBootstrap() {
+/** [ZAYDA 2.6] versaoCatalogo = versão guardada no aparelho. Igual à atual: não manda os produtos (o aparelho usa o que guardou).
+ *  Diferente: manda o catálogo inteiro como texto JSON (catalogoJson) e a versão nova. */
+function getBootstrap(versaoCatalogo) {
   const user=auth_();
-  const produtos=catalogo_();
-  const cats=[...new Set(produtos.map(x=>x.categoria))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
-  return {user,produtos,categorias:cats,recentes:recentes_()};
+  const cat=catalogoCache_();
+  const out={user,catVersao:cat.versao,recentes:recentes_(),popular:maisPedidos_()}; // [ZAYDA 2.7] popular: sku → nº de pedidos
+  if (String(versaoCatalogo||'')!==cat.versao) out.catalogoJson=cat.json;
+  return out;
 }
 
 function ultimos_() {
@@ -1152,3 +1160,97 @@ function anexarArquivoTerceiro(arq) {
   terAuditar_(u.email, 'TERCEIRO_ANEXO', '', 'Arquivo enviado para a pasta "' + TER.pasta + '": ' + nome);
   return {url: arquivo.getUrl(), nome: limpo};
 }
+
+/* ======================= [ZAYDA 2.6] ESTABILIDADE =======================
+ * Catálogo com versão: o navegador guarda {versão, produtos, categorias}; se a versão dele for a atual, getBootstrap não manda os produtos.
+ * A versão (MD5 do catálogo montado) e o catálogo ficam no CacheService em pedaços (< 100 KB cada) por até 10 minutos;
+ * editar a aba CATALOGO apaga essa cópia (onEdit), e a próxima abertura monta de novo. */
+const CAT_CACHE = 'ZAYDA_CATALOGO_V1', CAT_PEDACO = 30000, CAT_SEG = 600;
+function catalogoCache_() {
+  let cache = null;
+  try {
+    cache = CacheService.getScriptCache();
+    const info = cache.get(CAT_CACHE);
+    if (info) {
+      const x = JSON.parse(info), chaves = [];
+      for (let i = 0; i < x.n; i++) chaves.push(CAT_CACHE + '_' + i);
+      const p = cache.getAll(chaves);
+      if (chaves.every(k => typeof p[k] === 'string')) return {versao: x.versao, json: chaves.map(k => p[k]).join('')};
+    }
+  } catch (e) {}
+  const produtos = catalogo_().map(p => ({sku: p.sku, produto: p.produto, categoria: p.categoria, unidade: p.unidade, preco: p.preco, semPreco: p.semPreco}));
+  const categorias = [...new Set(produtos.map(x => x.categoria))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const json = JSON.stringify({produtos, categorias});
+  const versao = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, json, Utilities.Charset.UTF_8).map(b => ('0' + (b & 255).toString(16)).slice(-2)).join('');
+  if (cache) {
+    try {
+      const pedacos = {}, n = Math.ceil(json.length / CAT_PEDACO);
+      for (let i = 0; i < n; i++) pedacos[CAT_CACHE + '_' + i] = json.slice(i * CAT_PEDACO, (i + 1) * CAT_PEDACO);
+      cache.putAll(pedacos, CAT_SEG);
+      cache.put(CAT_CACHE, JSON.stringify({versao, n}), CAT_SEG);
+    } catch (e) { console.error('Catálogo não guardado no cache: ' + e.message); }
+  }
+  return {versao, json};
+}
+/** Gatilho simples: alteração na aba CATALOGO apaga a cópia do catálogo (a próxima abertura monta a versão nova). */
+function onEdit(e) {
+  try {
+    if (e && e.range && e.range.getSheet().getName() === SHEETS.catalogo) CacheService.getScriptCache().remove(CAT_CACHE);
+  } catch (err) {}
+}
+
+/* Proteção das abas do sistema: SOMENTE AVISO (quem editar à mão vê um alerta; o formulário continua gravando).
+ * Rode protegerAbasSistema pelo editor (Executar). Aba que já tem proteção é deixada como está (não duplica).
+ * A aba USUARIOS não é tocada. removerProtecaoAbasSistema desfaz só as proteções criadas aqui. */
+const ABAS_SISTEMA = ['PEDIDOS', 'ITENS_PEDIDO', 'ENTREGAS', 'CANCELAMENTOS', 'CATALOGO', 'AUDITORIA', 'CONFIG', 'OBRAS',
+  'FORNECEDORES', 'TERCEIROS', 'TERCEIROS_PARCELAS', '_PRESENCA'];
+const DESC_PROTECAO_SISTEMA = 'ZAYDA · aba do sistema: edite só se souber o que está fazendo (proteção só de aviso)';
+function donoDaPlanilha_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet(), dono = ss.getOwner() ? ss.getOwner().getEmail().toLowerCase() : '';
+  const eu = String(Session.getEffectiveUser().getEmail() || '').toLowerCase();
+  if (!dono || eu !== dono) throw new Error('Só o dono da planilha pode rodar esta função (pelo editor do Apps Script).');
+  return ss;
+}
+function protegerAbasSistema() {
+  const ss = donoDaPlanilha_(), protegidas = [], mantidas = [], ausentes = [];
+  ABAS_SISTEMA.forEach(nome => {
+    const sh = ss.getSheetByName(nome);
+    if (!sh) { ausentes.push(nome); return; }
+    const ps = sh.getProtections(SpreadsheetApp.ProtectionType.SHEET);
+    if (ps.length) { mantidas.push(nome); return; }
+    sh.protect().setDescription(DESC_PROTECAO_SISTEMA).setWarningOnly(true);
+    protegidas.push(nome);
+  });
+  const r = {protegidas, jaTinhamProtecao: mantidas, naoExistem: ausentes};
+  Logger.log(JSON.stringify(r, null, 2));
+  return r;
+}
+function removerProtecaoAbasSistema() {
+  const ss = donoDaPlanilha_(), removidas = [];
+  ABAS_SISTEMA.forEach(nome => {
+    const sh = ss.getSheetByName(nome);
+    if (!sh) return;
+    sh.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => { if (p.getDescription() === DESC_PROTECAO_SISTEMA) { p.remove(); removidas.push(nome); } });
+  });
+  Logger.log('Proteções removidas: ' + (removidas.join(', ') || 'nenhuma'));
+  return {removidas};
+}
+
+/* [ZAYDA 2.7] Mais pedidos: em quantos pedidos (revisão vigente) cada material aparece. Usado na ordem da busca e nas
+ * sugestões "Mais pedidos". Guardado por 10 minutos no CacheService. */
+function maisPedidos_() {
+  const chave = 'ZAYDA_MAIS_PEDIDOS_V1'; let cache = null;
+  try { cache = CacheService.getScriptCache(); const v = cache.get(chave); if (v) return JSON.parse(v); } catch (e) {}
+  const rev = {};
+  registros_('pedidos').forEach(r => { const id = String(r[0]); rev[id] = Math.max(rev[id] || 0, Number(r[1]) || 0); });
+  const vistos = {}, out = {};
+  registros_('itens').forEach(r => {
+    const id = String(r[0]), sku = String(r[2] || '').trim();
+    if (!sku || Number(r[1]) !== rev[id]) return;
+    const k = id + '|' + sku; if (vistos[k]) return; vistos[k] = 1;
+    out[sku] = (out[sku] || 0) + 1;
+  });
+  try { const t = JSON.stringify(out); if (cache && t.length < 90000) cache.put(chave, t, 600); } catch (e) {}
+  return out;
+}
+
