@@ -17,6 +17,16 @@
  * Segurança: nenhuma ação aceita usuários sem identidade Google verificável.
  */
 const SHEETS = Object.freeze({catalogo:'CATALOGO',pedidos:'PEDIDOS',itens:'ITENS_PEDIDO',auditoria:'AUDITORIA',config:'CONFIG'});
+/** [ZAYDA 3.1] Etapas construtivas, na ordem da planilha de obras. Lista única: o formulário recebe daqui (getBootstrap e terceirosDados).
+ *  Gravada em PEDIDOS coluna P (ETAPA) e em TERCEIROS coluna W (ETAPA). Opcional: vazio = "Não informar". */
+const ETAPAS_OBRA = Object.freeze(['Projeto','Fundação','Estrutura','Alvenaria','Cobertura','Hidráulica','Acabamento','Pintura','Elétrica','Entrega']);
+/** Etapa da obra: vazio ou uma da lista. "permitida" aceita a etapa já gravada (se a lista mudar, um lançamento antigo ainda pode ser salvo). */
+function etapaObra_(v, permitida) {
+  const s = String(v == null ? '' : v).trim();
+  if (!s) return '';
+  if (ETAPAS_OBRA.indexOf(s) < 0 && s !== String(permitida || '')) throw new Error('Etapa da obra inválida. Escolha na lista.');
+  return s;
+}
 // [ZAYDA 1.2] Aba criada automaticamente na 1ª confirmação de entrega.
 const ABA_ENTREGAS = 'ENTREGAS';
 const CAB_ENTREGAS = ['ENTREGA_ID','PEDIDO_ID','REVISAO','SKU','PRODUTO','UNIDADE','QTD_ENTREGUE','DATA_ENTREGA','EMAIL_LOGIN','REGISTRADO_EM','OBSERVACOES',
@@ -32,7 +42,7 @@ const PREFIXO_PEDIDO = 'ZAYDA-';
 // não têm cabeçalho. Assim funciona com ou sem cabeçalho na linha 1.
 function registros_(key) {
   // [ZAYDA 2.6] Só as colunas usadas (PEDIDOS A:O, ITENS_PEDIDO A:K), até a última linha com dados: o mesmo resultado do getDataRange, com leitura menor.
-  const sh = s_(key), n = sh.getLastRow(), cols = Math.min(key === 'itens' ? 11 : 15, sh.getMaxColumns());
+  const sh = s_(key), n = sh.getLastRow(), cols = Math.min(key === 'itens' ? 11 : 16, sh.getMaxColumns()); // [ZAYDA 3.1] PEDIDOS até a coluna P (ETAPA)
   if (!n) return [];
   return sh.getRange(1, 1, n, cols).getValues().filter(r => String(r[0] || '').indexOf(PREFIXO_PEDIDO) === 0);
 }
@@ -172,7 +182,7 @@ function catalogo_() {
 function getBootstrap(versaoCatalogo) {
   const user=auth_();
   const cat=catalogoCache_();
-  const out={user,catVersao:cat.versao,recentes:recentes_(),popular:maisPedidos_()}; // [ZAYDA 2.7] popular: sku → nº de pedidos
+  const out={user,catVersao:cat.versao,recentes:recentes_(),popular:maisPedidos_(),etapas:ETAPAS_OBRA.slice()}; // [ZAYDA 3.1] etapas da obra // [ZAYDA 2.7] popular: sku → nº de pedidos
   if (String(versaoCatalogo||'')!==cat.versao) out.catalogoJson=cat.json;
   return out;
 }
@@ -335,6 +345,7 @@ function savePedido(payload) {
     const casa=safeString_(payload.casa,120,'Casa/obra',true);
     const observacoes=safeString_(payload.observacoes,800,'Observações',false);
     const referencia=safeString_(payload.referencia,300,'Ponto de referência',false); // [ZAYDA 1.4]
+    const etapa=etapaObra_(payload.etapa); // [ZAYDA 3.1] opcional
     if(!Array.isArray(payload.itens) || !payload.itens.length || payload.itens.length>MAX_ITENS) throw new Error('Selecione de 1 a '+MAX_ITENS+' materiais.');
     const catalogo=catalogo_(); const bySku={};catalogo.forEach(p=>bySku[p.sku]=p);
     const seen=new Set(), parsed=[], semPreco=[];let total=0,missing=0;
@@ -359,9 +370,9 @@ function savePedido(payload) {
     const now=Utilities.formatDate(new Date(),FUSO_ZAYDA,'yyyy-MM-dd HH:mm:ss');
     const created=now;
     const status=missing?'PENDENTE DE COTACAO':'REGISTRADO';
-    const pedidoRow=[[id,rev,created,now,user.email,atendente,entregador,endereco,casa,observacoes,total,missing,status,'FORMULARIO WEB',referencia]]; // [ZAYDA 1.4] coluna O: PONTO_REFERENCIA
+    const pedidoRow=[[id,rev,created,now,user.email,atendente,entregador,endereco,casa,observacoes,total,missing,status,'FORMULARIO WEB',referencia,etapa]]; // [ZAYDA 1.4] coluna O: PONTO_REFERENCIA · [ZAYDA 3.1] coluna P: ETAPA
     const pSheet=s_('pedidos'), linhaP=pSheet.getLastRow()+1;
-    pSheet.getRange(linhaP,6,1,5).setNumberFormat('@'); pSheet.getRange(linhaP,15).setNumberFormat('@'); // [ZAYDA 1.9] texto, para "09:00" não virar hora
+    pSheet.getRange(linhaP,6,1,5).setNumberFormat('@'); pSheet.getRange(linhaP,15,1,2).setNumberFormat('@'); // [ZAYDA 1.9] texto, para "09:00" não virar hora
     pSheet.getRange(linhaP,1,1,pedidoRow[0].length).setValues(pedidoRow);
     const itemRows=parsed.map(it=>[id,rev,it.sku,it.product.produto,it.product.categoria,it.product.unidade,it.qtd,it.preco,it.subtotal,it.preco===null?'SIM':'NAO',now]);
     const itSheet=s_('itens');itSheet.getRange(itSheet.getLastRow()+1,1,itemRows.length,itemRows[0].length).setValues(itemRows);
@@ -634,7 +645,7 @@ function registroPedido_(r) {
   return {id:String(r[0]||''), revisao:Number(r[1]||0),criado:dataTexto_(r[2]),atualizado:dataTexto_(r[3]),email:String(r[4]||''),
     atendente:textoCelula_(r[5]),entregador:textoCelula_(r[6]),endereco:textoCelula_(r[7]),casa:textoCelula_(r[8]), // [ZAYDA 1.9] textoCelula_
     observacoes:textoCelula_(r[9]),total:dinheiro_(r[10],false)||0,semPreco:Number(r[11]||0),status:String(r[12]||''),
-    referencia:textoCelula_(r[14])};
+    referencia:textoCelula_(r[14]),etapa:textoCelula_(r[15])}; // [ZAYDA 3.1] coluna P: ETAPA
 }
 /** Entregue por SKU, última entrega e [ZAYDA 2.0] a lista de entregas, numa passada só (mesmas regras de entreguePorSku_ e ultimaEntrega_).
  *  Entrega antiga sem ENTREGUE_POR (coluna N) usa o entregador do pedido. */
@@ -785,7 +796,7 @@ function fecharPedido_(tipo, idPedido, motivoTxt, chaveTxt) {
  *   FORNECEDORES        A ID · B NOME · C TIPO_PRINCIPAL · D CPF_CNPJ · E TELEFONE · F OBSERVACAO · G ATIVO · H CRIADO_POR · I CRIADO_EM
  *   TERCEIROS           A ID · B CRIADO_EM · C CRIADO_POR · D OBRA_ID · E FORNECEDOR_ID · F FORNECEDOR_NOME · G TIPO · H DESCRICAO · I QUANTIDADE
  *                       J UNIDADE · K VALOR_TOTAL · L DATA_REFERENCIA · M NOTA_NUMERO · N ANEXO_URL · O FORMA_PAGAMENTO · P CONFERENCIA
- *                       Q CONFERIDO_POR · R CONFERIDO_EM · S MOTIVO · T OBSERVACAO · U ATUALIZADO_EM · V ATUALIZADO_POR
+ *                       Q CONFERIDO_POR · R CONFERIDO_EM · S MOTIVO · T OBSERVACAO · U ATUALIZADO_EM · V ATUALIZADO_POR · W ETAPA
  *   TERCEIROS_PARCELAS  A ID_PARCELA · B ID_LANCAMENTO · C NUMERO · D DESCRICAO · E VALOR · F VENCIMENTO · G PAGO · H DATA_PAGAMENTO
  *                       I FORMA · J COMPROVANTE_URL · K REGISTRADO_POR · L REGISTRADO_EM
  * A conferência é feita no painel (EMPRESA Zayda + PERFIL Admin); aqui só se lança, edita enquanto não conferido e registra pagamentos. */
@@ -794,7 +805,7 @@ const TER = Object.freeze({
   cabForn: ['ID','NOME','TIPO_PRINCIPAL','CPF_CNPJ','TELEFONE','OBSERVACAO','ATIVO','CRIADO_POR','CRIADO_EM'],
   cabLanc: ['ID','CRIADO_EM','CRIADO_POR','OBRA_ID','FORNECEDOR_ID','FORNECEDOR_NOME','TIPO','DESCRICAO','QUANTIDADE','UNIDADE','VALOR_TOTAL',
             'DATA_REFERENCIA','NOTA_NUMERO','ANEXO_URL','FORMA_PAGAMENTO','CONFERENCIA','CONFERIDO_POR','CONFERIDO_EM','MOTIVO','OBSERVACAO',
-            'ATUALIZADO_EM','ATUALIZADO_POR'],
+            'ATUALIZADO_EM','ATUALIZADO_POR','ETAPA'], // [ZAYDA 3.1] W: ETAPA (no fim)
   cabParc: ['ID_PARCELA','ID_LANCAMENTO','NUMERO','DESCRICAO','VALOR','VENCIMENTO','PAGO','DATA_PAGAMENTO','FORMA','COMPROVANTE_URL',
             'REGISTRADO_POR','REGISTRADO_EM'],
   tipos: ['Vidros e esquadrias','Pedras e marmoraria','Pisos e revestimentos','Concretagem','Outros'],
@@ -898,7 +909,7 @@ function terLancObj_(r) {
     unidade: textoCelula_(r[9]), valor: Math.round((Number(r[10]) || 0) * 100) / 100, dataRef: terDataTxt_(r[11]), nota: textoCelula_(r[12]),
     anexo: String(r[13] || ''), forma: String(r[14] || ''), conferencia: String(r[15] || 'AGUARDANDO').trim().toUpperCase() || 'AGUARDANDO',
     conferidoPor: String(r[16] || ''), conferidoEm: dataTexto_(r[17]), motivo: textoCelula_(r[18]), obs: textoCelula_(r[19]),
-    atualizadoEm: dataTexto_(r[20]), atualizadoPor: String(r[21] || '')};
+    atualizadoEm: dataTexto_(r[20]), atualizadoPor: String(r[21] || ''), etapa: textoCelula_(r[22])};
 }
 
 /** Tudo que a tela precisa: obras, fornecedores ativos e os lançamentos com as parcelas (mais recentes primeiro). Texto JSON. */
@@ -916,7 +927,7 @@ function terceirosDados() {
     const l = terLancObj_(r); l.parcelas = (parc[l.id] || []).sort((a, b) => a.numero - b.numero); return l; })
     .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm) || b.id.localeCompare(a.id));
   return JSON.stringify({eu: {email: u.email, nome: u.nome, zayda: u.zayda}, hoje: terHoje_(), obras: terObras_(),
-    fornecedores: terFornecedores_().filter(f => f.ativo), lancamentos: lancs, tipos: TER.tipos, unidades: TER.unidades, formas: TER.formas});
+    fornecedores: terFornecedores_().filter(f => f.ativo), lancamentos: lancs, etapas: ETAPAS_OBRA.slice(), tipos: TER.tipos, unidades: TER.unidades, formas: TER.formas});
 }
 
 /** Novo fornecedor. dados = {nome, tipo, doc, telefone, obs}. Nome repetido (sem acento/maiúsculas) não entra. */
@@ -1052,11 +1063,15 @@ function salvarTerceiro(payload) {
       linha = shL.getLastRow() + 1;
     }
     const parcelas = terParcelas_(payload.parcelas, forma, total, id, antigas, u);
+    const etapa = etapaObra_(payload.etapa, antes ? antes.etapa : ''); // [ZAYDA 3.1] opcional
+    // Aba criada antes da coluna ETAPA: põe o cabeçalho W1 (só o nome; nada é movido).
+    const celEtapa = shL.getRange(1, TER.cabLanc.length);
+    if (String(celEtapa.getValue() || '').trim() !== 'ETAPA') celEtapa.setValue('ETAPA').setFontWeight('bold').setBackground('#005f2a').setFontColor('#ffffff');
     // REPROVADO editado volta para AGUARDANDO: limpa quem/quando conferiu; o motivo antigo fica na AUDITORIA.
     const row = [id, criadoEm, criadoPor, obraId, forn.id, forn.nome, tipo, desc, qtd, un, total, dataRef, nota, anexo, forma,
-      'AGUARDANDO', '', '', '', obs, agora, u.email];
+      'AGUARDANDO', '', '', '', obs, agora, u.email, etapa];
     shL.getRange(linha, 1, 1, 8).setNumberFormat('@'); shL.getRange(linha, 9, 1, 1).setNumberFormat('0.###'); shL.getRange(linha, 10, 1, 1).setNumberFormat('@');
-    shL.getRange(linha, 11, 1, 1).setNumberFormat('#,##0.00'); shL.getRange(linha, 12, 1, 11).setNumberFormat('@');
+    shL.getRange(linha, 11, 1, 1).setNumberFormat('#,##0.00'); shL.getRange(linha, 12, 1, 12).setNumberFormat('@');
     shL.getRange(linha, 1, 1, row.length).setValues([row]);
     terGravarParcelas_(shP, id, parcelas);
     const resumo = forn.nome + ' · ' + tipo + ' · R$ ' + total.toFixed(2).replace('.', ',') + ' · obra ' + obraId + ' · ' + parcelas.length + ' parcela(s)';

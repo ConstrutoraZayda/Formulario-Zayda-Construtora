@@ -426,6 +426,9 @@ body.com-atalho #message.toast{bottom:calc(76px + env(safe-area-inset-bottom,0px
 
 /* [ZAYDA 2.7] Etapa 2A: busca, card do resultado, etapas, mais detalhes, sucesso e acessibilidade */
 .res-cab.res-cat{text-transform:none;letter-spacing:0}
+.etapa-dica{display:block;margin-top:4px;font-size:12px;color:var(--ink-3)}
+.etapa-tag{display:inline-block;margin-left:6px;font-size:12px;font-weight:600;color:var(--ink-2);white-space:nowrap}
+.suc-dl .suc-etapa{display:block;margin-top:2px;font-size:12px;font-weight:600;color:var(--ink-2)}
 .res-erro{display:flex;flex-direction:column;align-items:flex-start;gap:10px}.res-erro button{min-height:44px}
 .res-cab{padding:9px 14px;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--grey);background:#f7faf8;border-bottom:1px solid #edf2f5}
 .results .product{align-items:center;min-height:64px}
@@ -540,6 +543,7 @@ zTemaAplicar(zTemaLer());
 <div><label for="atendente">Nome do(a) atendente *</label><input id="atendente" required autocomplete="off" placeholder="Quem está atendendo"></div>
 <div><label for="entregador">Nome(s) do(s) entregador(es) *</label><input id="entregador" required placeholder="Ex.: Carlos e João"></div>
 <div class="full obrabox" id="obraBox"><label for="obraBusca">Obra *</label><span class="obrain"><input id="obraBusca" autocomplete="off" spellcheck="false" placeholder="Toque para ver todas as obras ou digite para buscar" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="obraPop"><button type="button" class="obralimpa" id="obraLimpa" aria-label="Deixar a obra em branco" title="Deixar em branco" hidden>×</button><button type="button" class="obraseta" id="obraSeta" tabindex="-1" aria-label="Mostrar todas as obras">▾</button><ul class="obrapop" id="obraPop" role="listbox" hidden></ul></span><div class="obraok" id="obraOk" role="status" hidden></div></div>
+<div><label for="etapaObra">Etapa da obra (opcional)</label><select id="etapaObra" aria-describedby="etapaObraDica"><option value="">Não informar</option></select><span class="etapa-dica" id="etapaObraDica">Para saber quanto a obra gasta em cada etapa.</span></div>
 <div class="full" id="endBox" hidden><label for="endereco">Endereço completo de entrega *</label><input id="endereco" required placeholder="Rua, número, lote e bairro"></div>
 <div id="casaBox" hidden><label for="casa">Casa / complemento *</label><input id="casa" required placeholder="Ex.: Casa 2, galpão, depósito"></div>
 <details class="full mais-det" id="maisDet"><summary>+ Mais detalhes (opcional)</summary><div class="fields"><div class="full"><label for="referencia">Ponto de referência (opcional)</label><input id="referencia" maxlength="300" placeholder="Ex.: ao lado do mercado, portão verde, atrás da subprefeitura"></div>
@@ -569,6 +573,7 @@ zTemaAplicar(zTemaLer());
 <section class="panel" id="terFormBox" hidden><div class="ter-cab"><h2 id="terFormTit">Novo lançamento</h2></div>
 <div class="fields" style="margin-top:12px">
 <div class="full"><label for="terObra">Obra *</label><span class="ter-combo"><input id="terObra" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="terObraPop" placeholder="Toque para ver as obras ou digite para buscar"><ul class="obrapop" id="terObraPop" role="listbox" hidden></ul></span><div class="ter-sel" id="terObraSel" hidden></div></div>
+<div><label for="terEtapa">Etapa da obra (opcional)</label><select id="terEtapa" aria-describedby="terEtapaDica"><option value="">Não informar</option></select><span class="etapa-dica" id="terEtapaDica">Para saber quanto a obra gasta em cada etapa.</span></div>
 <div class="full"><label for="terForn">Fornecedor *</label><span class="ter-combo"><input id="terForn" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="terFornPop" placeholder="Digite para buscar o fornecedor"><ul class="obrapop" id="terFornPop" role="listbox" hidden></ul></span><div class="ter-sel" id="terFornSel" hidden></div>
  <button type="button" class="ter-link" id="terFornNovoBtn">+ Cadastrar fornecedor</button>
  <div class="ter-box" id="terFornNovo" hidden><h3>Cadastrar fornecedor</h3><div class="fields">
@@ -661,14 +666,14 @@ const temEntrega=()=>!!ultimaEntrega||itensPedido.some(it=>Number(it.entregue||0
 function regraItem(it){const salvo=itensPedido.find(s=>s.sku===it.sku),ent=salvo?Number(salvo.entregue||0):0;
  if(!currentOrder)return{qtd:true,preco:true,remover:true,min:1,ent};
  return{qtd:false,preco:false,remover:false,min:1,ent};}
-function sujo(){const p=payload();if(currentOrder)return JSON.stringify(p)!==lastSavedSignature;return cart.length>0||[p.atendente,p.entregador,p.endereco,p.casa,p.referencia,p.observacoes].some(v=>String(v||'').trim());}
+function sujo(){const p=payload();if(currentOrder)return JSON.stringify(p)!==lastSavedSignature;return cart.length>0||[p.atendente,p.entregador,p.endereco,p.casa,p.referencia,p.observacoes,p.etapa].some(v=>String(v||'').trim());}
 /* Salvar só existe no pedido novo. Em andamento: desativado com Salvando…. */
 function atualizarSujo(){const s=sujo(),b=document.getElementById('saveBtn');document.getElementById('naoSalvo').hidden=!s;
  if(salvando){b.disabled=true;b.textContent='Salvando…';return;}
  b.disabled=false;b.textContent='Salvar solicitação';}
 function aplicarEstado(){const g=id=>document.getElementById(id),aberto=!!currentOrder,trav=pedidoTravado(),falta=itensPedido.some(it=>faltaItem(it)>0);
  document.body.classList.toggle('travado',trav);
- ['atendente','entregador','obraBusca','endereco','casa','referencia','observacoes'].forEach(id=>{g(id).disabled=trav;});
+ ['atendente','entregador','obraBusca','endereco','casa','referencia','observacoes','etapaObra'].forEach(id=>{g(id).disabled=trav;});
  g('painelBusca').hidden=aberto;g('numBusca').textContent=aberto?'4':'2';g('saveBtn').hidden=aberto;g('avisoSalvo').hidden=!aberto;
  // [ZAYDA 1.9] Cancelar: salvo, sem nenhuma entrega. Encerrar: parcial (tem entrega e falta algo). Nenhum dos dois se já foi cancelado/encerrado.
  g('cancelarBtn').hidden=!aberto||!!cancelamento||!itensPedido.length||temEntrega();
@@ -716,11 +721,21 @@ const normProd=p=>{p.preco=p.semPreco?null:precoOuNull(p.preco);p.semPreco=p.pre
 const nItens=n=>n+(n===1?' item':' itens');
 function notify(msg,error=false){const el=document.getElementById('message');el.textContent=msg;el.className='message'+(error?' error':'');el.style.display='block';el.scrollIntoView({behavior:'smooth',block:'nearest'});}
 function err(e){notify(e&&e.message?e.message:String(e),true);atualizarSujo();}
-let BOOT_OK=false,BOOT_ERRO=false; // [ZAYDA 3.0] dados do servidor (mais pedidos) já chegaram / falharam
+let BOOT_OK=false,BOOT_ERRO=false;
+/* [ZAYDA 3.1] Etapa da obra: a lista vem do servidor (ETAPAS_OBRA, em Código.js). Opcional: "" = Não informar.
+   Etapa gravada que não está mais na lista continua aparecendo no pedido ou lançamento aberto. */
+let ETAPAS_OBRA=[];
+function etapasPreencher(lista){if(Array.isArray(lista)&&lista.length)ETAPAS_OBRA=lista.slice();
+ ['etapaObra','terEtapa'].forEach(id=>{const s=document.getElementById(id);if(!s)return;const a=s.value;
+  s.innerHTML='<option value="">Não informar</option>'+ETAPAS_OBRA.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join('');etapaPor(s,a);});}
+function etapaPor(s,v){v=String(v||'');if(v&&![...s.options].some(o=>o.value===v)){const o=document.createElement('option');o.value=v;o.textContent=v;s.appendChild(o);}s.value=v;}
+let ETAPA_MEXIDA=false;
+/* Pré-seleção: só se os dados da obra que o formulário já carrega trouxerem a fase atual (hoje a lista de obras não traz). */
+function etapaDaObra(o){if(ETAPA_MEXIDA||currentOrder||!o||!o.fase)return;const k=norm(o.fase).trim(),e=ETAPAS_OBRA.find(x=>norm(x).trim()===k);if(e)document.getElementById('etapaObra').value=e;} // [ZAYDA 3.0] dados do servidor (mais pedidos) já chegaram / falharam
 function boot(){presenca();const loc=lerCatalogoLocal();if(loc)setTimeout(()=>{if(!produtos.length)aplicarCatalogo(loc.produtos,loc.categorias);},0); /* [ZAYDA 2.6] catálogo guardado: aparece na hora (logo depois de o script terminar de carregar) */
  pedirBootstrap(loc);}
 function pedirBootstrap(loc){BOOT_ERRO=false;if(!produtos.length)renderResults();
- console.time('getBootstrap');google.script.run.withSuccessHandler(data=>{console.timeEnd('getBootstrap');BOOT_OK=true;user=data.user;recentes=data.recentes;POPULAR=data.popular||{};
+ console.time('getBootstrap');google.script.run.withSuccessHandler(data=>{console.timeEnd('getBootstrap');BOOT_OK=true;user=data.user;recentes=data.recentes;POPULAR=data.popular||{};etapasPreencher(data.etapas);
  if(data.catalogoJson){try{const k=JSON.parse(data.catalogoJson);aplicarCatalogo(k.produtos,k.categorias);guardarCatalogoLocal(data.catVersao,k.produtos,k.categorias);}catch(e){notify('Não foi possível ler o catálogo. Recarregue a página.',true);}}document.getElementById('identity').textContent=user.nome?'Olá, '+user.nome+(user.empresaUsuario?' · '+user.empresaUsuario:''):user.email; /* [ZAYDA 2.1] nome da aba USUARIOS */
  renderRecent();carregarObras();carregarIndice();rascOferecer();
  renderResults(); /* [ZAYDA 3.0] catálogo sem mudança de versão: os "Mais pedidos" chegaram agora e a lista é redesenhada aqui (antes só voltava ao mexer na obra) */
@@ -747,7 +762,7 @@ function aplicarCatalogo(lista,cats){produtos=(lista||[]).map(normProd);produtos
  renderResults();}
 const RASC_DIAS=7;let rascT=0,RASC_OFERTA=false;
 const rascChave=()=>user&&user.email?'zaydaRascunho:'+String(user.email).toLowerCase():'';
-const RASC_CAMPOS=['atendente','entregador','endereco','casa','referencia','observacoes'];
+const RASC_CAMPOS=['atendente','entregador','endereco','casa','referencia','observacoes','etapaObra'];
 function rascGuardar(){if(currentOrder||!rascChave()||RASC_OFERTA||(typeof TELA!=='undefined'&&TELA!=='novo'))return;clearTimeout(rascT);
  rascT=setTimeout(()=>{if(currentOrder||RASC_OFERTA)return;const campos={};RASC_CAMPOS.forEach(k=>campos[k]=document.getElementById(k).value);
   const tem=cart.length||RASC_CAMPOS.some(k=>String(campos[k]||'').trim());
@@ -760,7 +775,7 @@ function rascOferecer(){if(!produtos.length||currentOrder||cart.length||RASC_CAM
  box.innerHTML=`<span>Você tem um pedido não salvo de <b>${dd} às ${hh}</b> (${nItens(n)}).</span><span class="btn-row"><button type="button" class="primary" id="rascSim">Continuar</button><button type="button" class="secondary" id="rascNao">Descartar</button></span>`;box.hidden=false;
  document.getElementById('rascSim').onclick=()=>{box.hidden=true;RASC_OFERTA=false;rascRestaurar(x);};
  document.getElementById('rascNao').onclick=()=>{box.hidden=true;RASC_OFERTA=false;rascApagar();notify('Rascunho descartado.');};}
-function rascRestaurar(x){RASC_CAMPOS.forEach(k=>{document.getElementById(k).value=(x.campos||{})[k]||'';});atualizarObra();
+function rascRestaurar(x){RASC_CAMPOS.forEach(k=>{const el=document.getElementById(k),v=(x.campos||{})[k]||'';if(el.tagName==='SELECT')etapaPor(el,v);else el.value=v;});atualizarObra();
  const fora=[];cart=[];(x.cart||[]).forEach(i=>{const p=produtos.find(q=>q.sku===i.sku);if(!p){fora.push(i.sku);return;}
   cart.push({sku:p.sku,nome:p.produto,unidade:p.unidade,quantidade:Number(i.quantidade)||1,preco:semPrecoV(p.preco)?precoOuNull(i.preco):p.preco});});
  renderCart();if(typeof abrirDetalhesSeTiver==='function')abrirDetalhesSeTiver();rascGuardar();
@@ -849,14 +864,14 @@ function renderCart(){if(produtos.length)renderResults();document.getElementById
  document.querySelectorAll('[data-price]').forEach(inp=>inp.onchange=()=>{const n=parsePrice(inp.value);if(inp.value.trim()!==''&&n===null)notify('Preço inválido: informe um valor maior que zero, como 12,50.',true);cart[+inp.dataset.price].preco=n;renderCart();});
  document.querySelectorAll('[data-price]').forEach(inp=>inp.oninput=()=>{cart[+inp.dataset.price].preco=parsePrice(inp.value);resumoCart();});
  resumoCart();}
-function payload(){return {id:currentOrder,revisao:rev,atendente:document.getElementById('atendente').value,entregador:document.getElementById('entregador').value,endereco:document.getElementById('endereco').value,casa:document.getElementById('casa').value,referencia:document.getElementById('referencia').value,observacoes:document.getElementById('observacoes').value,itens:cart.map(it=>({sku:it.sku,quantidade:it.quantidade,preco:it.preco}))};}
+function payload(){return {id:currentOrder,revisao:rev,atendente:document.getElementById('atendente').value,entregador:document.getElementById('entregador').value,endereco:document.getElementById('endereco').value,casa:document.getElementById('casa').value,referencia:document.getElementById('referencia').value,observacoes:document.getElementById('observacoes').value,etapa:document.getElementById('etapaObra').value,itens:cart.map(it=>({sku:it.sku,quantidade:it.quantidade,preco:it.preco}))};}
 function save(){if(salvando)return;if(!user){notify('Sem login autorizado.',true);return;}if(currentOrder)return;document.querySelectorAll('[data-price]').forEach(inp=>{cart[+inp.dataset.price].preco=parsePrice(inp.value);});renderCart();const form=payload();if(!form.atendente.trim()||!form.entregador.trim()||!form.endereco.trim()||!form.casa.trim()||!cart.length){notify('Preencha atendente, entregador, endereço, casa/obra e selecione ao menos um produto.',true);return;}const semPreco=cart.filter(i=>!(i.preco>0));if(semPreco.length){destacarPreco=true;renderCart();notify('Informe o preço dos materiais a cotar antes de salvar: '+semPreco.map(i=>i.nome).join(', '),true);return;}
  /* [ZAYDA 1.9] Uma chave por tentativa; reenviar o mesmo conteúdo (ex.: depois de falha de conexão) usa a mesma chave. */
  const assin=JSON.stringify(form);if(tentativa.assin!==assin)tentativa={assin,chave:novaChave()};form.chaveSalvar=tentativa.chave;
  salvando=true;atualizarSujo();
  google.script.run.withSuccessHandler(r=>{salvando=false;tentativa={assin:'',chave:''};rascApagar();currentOrder=r.id;rev=r.revisao;lastSavedSignature=JSON.stringify(payload());cancelamento=null;aplicarEstado();document.getElementById('orderBadge').textContent=r.id+' · revisão '+r.revisao;notify('Solicitação '+r.id+' salva com sucesso (revisão '+r.revisao+'). '+(r.semPreco?r.semPreco+' itens pendentes de cotação.':'Valor total '+brl(r.total)+'.'));google.script.run.withSuccessHandler(rows=>{recentes=rows;renderRecent();}).recentesPublicos();carregarEntrega(r.id);mostrarSucesso(r);}).withFailureHandler(e=>{salvando=false;err(e);}).savePedido(form);}
 function novaChave(){try{if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();const a=new Uint8Array(16);crypto.getRandomValues(a);return Array.from(a,x=>x.toString(16).padStart(2,'0')).join('');}catch(e){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12);}}
-function resetForm(){abrindo='';PEDIDO_TELA='';PEND_ATUAL=null;entregaMexida=false;currentOrder='';rev=0;lastSavedSignature='';cart=[];destacarPreco=false;cancelamento=null;fechando=false;ultimaEntrega=null;entregasPed=[];['busca','categoria','buscaPedido','entregaData','entregaObs','recebidoPor','entreguePor'].forEach(id=>document.getElementById(id).value='');buscarPedido();['atendente','entregador','endereco','casa','referencia','observacoes'].forEach(id=>document.getElementById(id).value='');atualizarObra();document.getElementById('orderBadge').textContent='Novo pedido';document.getElementById('saveBtn').textContent='Salvar solicitação';renderCart();itensPedido=[];renderEntrega();rascApagar();notify('Novo formulário iniciado.');}
+function resetForm(){abrindo='';PEDIDO_TELA='';PEND_ATUAL=null;entregaMexida=false;currentOrder='';rev=0;lastSavedSignature='';cart=[];destacarPreco=false;cancelamento=null;fechando=false;ultimaEntrega=null;entregasPed=[];['busca','categoria','buscaPedido','entregaData','entregaObs','recebidoPor','entreguePor'].forEach(id=>document.getElementById(id).value='');buscarPedido();['atendente','entregador','endereco','casa','referencia','observacoes'].forEach(id=>document.getElementById(id).value='');document.getElementById('etapaObra').value='';ETAPA_MEXIDA=false;atualizarObra();document.getElementById('orderBadge').textContent='Novo pedido';document.getElementById('saveBtn').textContent='Salvar solicitação';renderCart();itensPedido=[];renderEntrega();rascApagar();notify('Novo formulário iniciado.');}
 function openById(id){const code=id||prompt('Digite o código da solicitação (ZAYDA-...)');if(!code)return;confirmarSaida(()=>abrirPedido(code));}
 /* [ZAYDA 1.8] Índice dos pedidos em memória: o pedido abre na hora, sem esperar o servidor.
    A versão (getVersaoPedidos) diz quando recarregar. localEm guarda quando um pedido foi atualizado aqui,
@@ -886,6 +901,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 /* [ZAYDA 2.2] Presença: o painel sabe quem está com o formulário aberto. Ao abrir, a cada 60 s com a página visível e ao voltar a ficar visível; em segundo plano não chama. Erros são ignorados. */
 let buscaDeb=0;document.getElementById('busca').addEventListener('input',()=>{clearTimeout(buscaDeb);buscaDeb=setTimeout(novaBusca,120);});
 document.getElementById('categoria').addEventListener('change',()=>{clearTimeout(buscaDeb);novaBusca();}); // [ZAYDA 3.0] trocar a categoria redesenha a lista e volta ao topo // [ZAYDA 2.7] 120 ms
+document.getElementById('etapaObra').addEventListener('change',()=>{ETAPA_MEXIDA=true;atualizarSujo();});
 document.getElementById('busca').addEventListener('keydown',e=>{if(e.key!=='Enter'||ehCelular())return;e.preventDefault();clearTimeout(buscaDeb);novaBusca();const b=document.querySelector('#results [data-add]');if(b&&!b.disabled){b.click();document.getElementById('busca').focus();}}); // computador: Enter adiciona o 1º resultadodocument.getElementById('categoria').addEventListener('change',novaBusca);
 function presenca(){if(document.visibilityState!=='visible')return;try{google.script.run.withSuccessHandler(()=>{}).withFailureHandler(()=>{}).presencaFormulario();}catch(e){}}
 setInterval(presenca,60000);
@@ -893,7 +909,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 /* Monta a tela de um pedido. Na atualização em segundo plano mantém a edição liberada, a busca aberta e os campos da entrega. */
 function mostrarPedido(p,op){const atual=!!(op&&op.atualizacao);
  currentOrder=p.id;rev=p.revisao;destacarPreco=false;if(!atual){entregaMexida=false;}ultimaEntrega=p.ultimaEntrega||null;cancelamento=p.cancelamento||null;entregasPed=p.entregas||[];
- ['atendente','entregador','endereco','casa','referencia','observacoes'].forEach(k=>document.getElementById(k).value=p[k]||'');atualizarObra();
+ ['atendente','entregador','endereco','casa','referencia','observacoes'].forEach(k=>document.getElementById(k).value=p[k]||'');etapaPor(document.getElementById('etapaObra'),p.etapa);atualizarObra(); /* [ZAYDA 3.1] etapa gravada no pedido */
  cart=p.itens.map(it=>({sku:it.sku,nome:it.nome,unidade:it.unidade,quantidade:it.quantidade,preco:precoOuNull(it.preco)}));
  document.getElementById('orderBadge').textContent=p.id+' · revisão '+rev;document.getElementById('saveBtn').textContent='Salvar alterações';
  renderCart();lastSavedSignature=JSON.stringify(payload());itensPedido=p.itens;if(!atual){document.getElementById('entregaData').value='';document.getElementById('entreguePor').value=p.entregador||'';}renderEntrega();
@@ -961,6 +977,7 @@ function printRelation() {
       ${field('Endereço de entrega',p.endereco,true)}
       ${field('Casa / complemento',p.casa)}
       ${p.referencia.trim()?field('Ponto de referência',p.referencia).replace('print-field','print-field full'):''}
+      ${p.etapa?field('Etapa da obra',p.etapa):''}
       ${field('Atendente',p.atendente)}
       ${field('Entregador(es)',p.entregador)}
       ${field('Usuário do formulário',user.email).replace('print-field','print-field email')}
@@ -1183,7 +1200,7 @@ function limparObra(){fecharObras();OBRA_SEL=null;$o('endereco').value='';$o('ca
 function fecharObras(){$o('obraPop').hidden=true;$o('obraBusca').setAttribute('aria-expanded','false');}
 function escolherObra(o){fecharObras();
  if(o==='outro'){if(MODO_OBRA==='lista'){$o('endereco').value='';$o('casa').value='';}OBRA_SEL=null;modoObra('outro');statusObra();setTimeout(()=>$o('endereco').focus(),30);return;}
- $o('endereco').value=o.endereco;$o('casa').value=o.casa||'';OBRA_SEL=o;modoObra('lista');statusObra();$o('obraBusca').blur();}
+ $o('endereco').value=o.endereco;$o('casa').value=o.casa||'';OBRA_SEL=o;modoObra('lista');statusObra();etapaDaObra(o);$o('obraBusca').blur();}
 (function(){const inp=$o('obraBusca'),ul=$o('obraPop');
  inp.addEventListener('focus',()=>{inp.select();abrirObras('');});
  inp.addEventListener('input',()=>abrirObras(inp.value));
@@ -1233,7 +1250,7 @@ function terFechar(fn){const sai=()=>{terAberto=false;terMostrar('lista');if(fn)
  if(terTela==='form'&&terSujo())pedirConfirmacao('O lançamento não foi salvo e será perdido. Deseja sair?','Sair sem salvar',sai);else sai();}
 function terCarregar(depois){google.script.run.withSuccessHandler(txt=>{TERD=JSON.parse(txt);terPreencherListas();terRender();if(depois)depois();})
  .withFailureHandler(e=>{T$('terLista').textContent='Não foi possível carregar os lançamentos.';err(e);}).terceirosDados();}
-function terPreencherListas(){const op=(l,vazio)=>(vazio?`<option value="">${vazio}</option>`:'')+l.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+function terPreencherListas(){etapasPreencher(TERD.etapas);const op=(l,vazio)=>(vazio?`<option value="">${vazio}</option>`:'')+l.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
  const k=(id,l,v)=>{const s=T$(id),a=s.value;s.innerHTML=op(l,v);s.value=a;};
  k('terTipo',TERD.tipos,'Escolha o tipo');k('tfTipo',TERD.tipos,'—');k('terUn',TERD.unidades,'—');k('tpForma',TERD.formas,'Escolha');}
 
@@ -1242,7 +1259,7 @@ function terFiltrados(){const q=norm(T$('terBusca').value).trim().split(/\s+/).f
  return (TERD?TERD.lancamentos:[]).filter(l=>(!sit||l.conferencia===sit)&&(!q.length||(t=>q.every(w=>t.indexOf(w)>=0))(norm([l.fornecedor,l.descricao,l.obra,(terObra(l.obra)||{}).endereco,l.tipo,l.id].join(' ')))));}
 function terRender(){if(!TERD)return;const L=terFiltrados();
  T$('terLista').className=L.length?'':'muted';
- T$('terLista').innerHTML=L.length?L.slice(0,terVis).map(l=>`<button type="button" class="ter-lin" data-terid="${esc(l.id)}"><span><span class="t1">${terDia(l.dataRef)} · ${esc(terObraTxt(l.obra))}</span><br><span class="t2">${esc(l.fornecedor)}</span> <span class="t1">· ${esc(l.tipo)}</span><br><span class="t3">${esc(l.descricao.length>90?l.descricao.slice(0,88)+'…':l.descricao)}</span></span><span class="vl">${terBrl(terCent(l.valor))}</span><span class="selos">${terSeloConf(l)}${l.conferencia!=='CANCELADO'?terSeloPag(l):''}</span></button>`).join('')
+ T$('terLista').innerHTML=L.length?L.slice(0,terVis).map(l=>`<button type="button" class="ter-lin" data-terid="${esc(l.id)}"><span><span class="t1">${terDia(l.dataRef)} · ${esc(terObraTxt(l.obra))}${l.etapa?' · '+esc(l.etapa):''}</span><br><span class="t2">${esc(l.fornecedor)}</span> <span class="t1">· ${esc(l.tipo)}</span><br><span class="t3">${esc(l.descricao.length>90?l.descricao.slice(0,88)+'…':l.descricao)}</span></span><span class="vl">${terBrl(terCent(l.valor))}</span><span class="selos">${terSeloConf(l)}${l.conferencia!=='CANCELADO'?terSeloPag(l):''}</span></button>`).join('')
   :(TERD.lancamentos.length?'Nenhum lançamento encontrado com essa busca.':'Nenhum lançamento ainda. Exemplo: Vidraçaria Cristal · Box blindex 8 mm · R$ 2.400 · sinal + restante. Toque em “+ Novo lançamento”.');
  T$('terMais').hidden=L.length<=terVis;
  if(terTela==='det'&&terDetId)terDetalhe(terDetId,true);}
@@ -1268,7 +1285,7 @@ function terDetalhe(id,atualizar){const l=TERD&&TERD.lancamentos.find(x=>x.id===
  T$('terDetBox').innerHTML=`<div class="ter-cab"><h2>${esc(l.fornecedor)} · ${terBrl(terCent(l.valor))}</h2><div class="btn-row">${terPodeEditar(l)?'<button class="primary" type="button" id="terEditarBtn">Editar</button>':''}<button class="secondary" type="button" id="terDetVoltar">Voltar à lista</button></div></div>
   <div class="ter-conf ${esc(c.toLowerCase())}">${esc(conf)}</div>
   <div class="ter-det">${f('Código',`<b>${esc(l.id)}</b>`)}${f('Data de referência',terDia(l.dataRef))}${f('Tipo',esc(l.tipo))}
-  ${f('Obra',esc(l.obra)+(o?' · '+esc(o.endereco):''),true)}${f('Descrição',esc(l.descricao),true)}
+  ${f('Obra',esc(l.obra)+(o?' · '+esc(o.endereco):''),true)}${l.etapa?f('Etapa da obra',esc(l.etapa)):''}${f('Descrição',esc(l.descricao),true)}
   ${f('Quantidade',l.quantidade!=null&&!isNaN(l.quantidade)?fmtQ(l.quantidade)+' '+esc(l.unidade):'—')}${f('Nº da nota/orçamento',esc(l.nota||'—'))}${f('Pagamento',l.forma==='PARCELADO'?'Parcelado ('+(l.parcelas||[]).length+')':'Único')}
   ${f('Anexo',l.anexo?`<a href="${esc(l.anexo)}" target="_blank" rel="noopener">Abrir foto/PDF</a>`:'—')}${f('Lançado por',esc(l.criadoPor)+' em '+terQuando(l.criadoEm))}${f('Última alteração',esc(l.atualizadoPor||'—')+(l.atualizadoEm?' em '+terQuando(l.atualizadoEm):''))}
   ${l.obs?f('Observação',esc(l.obs),true):''}</div>
@@ -1371,7 +1388,7 @@ T$('tfSalvar').onclick=()=>{const b=T$('tfSalvar'),er=T$('tfErro'),nome=T$('tfNo
 const terTotal=()=>terLerCent(T$('terValor').value)||0;
 function terParcNova(desc,cent,venc){return {descricao:desc||'',valor:cent==null?null:cent,venc:venc||'',vencManual:false,pago:false,dataPag:'',forma:'',comp:null};}
 function terLimparForm(){terEdit=null;terObraSel=null;terFornSel=null;terAnexo=null;terForma='UNICO';terTent={assin:'',chave:''};
- ['terObra','terForn','terTipo','terDesc','terQtd','terUn','terValor','terNota','terObs','terArq'].forEach(id=>T$(id).value='');T$('terData').value=terHoje();
+ ['terObra','terForn','terTipo','terDesc','terQtd','terUn','terValor','terNota','terObs','terArq','terEtapa'].forEach(id=>T$(id).value='');T$('terData').value=terHoje();
  T$('terFornNovo').hidden=true;T$('terSinalBox').hidden=true;T$('terDividirBox').hidden=true;T$('terErro').hidden=true;terMostrarArq(T$('terArqInfo'),null);
  document.querySelector('input[name=terForma][value=UNICO]').checked=true;terParc=[terParcNova('Pagamento único',null,terHoje())];terSelInfo();}
 function terNovo(){if(!TERD)return;terLimparForm();T$('terFormTit').textContent='Novo lançamento';terParcRender();terFormIni=terAssin();terMostrar('form');window.scrollTo(0,0);T$('terObra').focus({preventScroll:true});}
@@ -1379,7 +1396,7 @@ function terEditar(id){const l=TERD.lancamentos.find(x=>x.id===id);if(!l||!terPo
  T$('terFormTit').textContent='Editar '+l.id+(l.conferencia==='REPROVADO'?' (reprovado: ao salvar, volta para a conferência)':'');
  terObraSel=terObra(l.obra)||{id:l.obra,endereco:'',cliente:'',status:''};terFornSel=TERD.fornecedores.find(f=>f.id===l.fornecedorId)||{id:l.fornecedorId,nome:l.fornecedor,tipo:'',doc:'',telefone:''};
  T$('terObra').value=terObraSel.id+' · '+terObraSel.endereco;T$('terForn').value=terFornSel.nome;terSelInfo();
- T$('terTipo').value=l.tipo;T$('terDesc').value=l.descricao;T$('terQtd').value=l.quantidade!=null&&!isNaN(l.quantidade)?String(l.quantidade).replace('.',','):'';T$('terUn').value=l.unidade||'';
+ T$('terTipo').value=l.tipo;T$('terDesc').value=l.descricao;T$('terQtd').value=l.quantidade!=null&&!isNaN(l.quantidade)?String(l.quantidade).replace('.',','):'';T$('terUn').value=l.unidade||'';etapaPor(T$('terEtapa'),l.etapa);
  T$('terValor').value=terBrl(terCent(l.valor));T$('terData').value=l.dataRef||terHoje();T$('terNota').value=l.nota||'';T$('terObs').value=l.obs||'';
  terAnexo=l.anexo?{url:l.anexo,nome:'Anexo atual'}:null;terMostrarArq(T$('terArqInfo'),terAnexo,()=>{terAnexo=null;terSoma();});
  terForma=l.forma==='PARCELADO'?'PARCELADO':'UNICO';document.querySelector(`input[name=terForma][value=${terForma}]`).checked=true;
@@ -1388,7 +1405,7 @@ function terEditar(id){const l=TERD.lancamentos.find(x=>x.id===id);if(!l||!terPo
  terParcRender();terFormIni=terAssin();terMostrar('form');window.scrollTo(0,0);}
 function terPayload(){const qtd=T$('terQtd').value.trim().replace(/\./g,'').replace(',','.');
  return {id:terEdit?terEdit.id:'',atualizadoEm:terEdit?terEdit.atualizadoEm:'',obra:terObraSel?terObraSel.id:'',fornecedorId:terFornSel?terFornSel.id:'',tipo:T$('terTipo').value,
-  descricao:T$('terDesc').value.trim(),quantidade:qtd===''?'':Number(qtd),unidade:T$('terUn').value,valor:terTotal()/100,dataRef:T$('terData').value,nota:T$('terNota').value.trim(),obs:T$('terObs').value.trim(),
+  descricao:T$('terDesc').value.trim(),quantidade:qtd===''?'':Number(qtd),unidade:T$('terUn').value,etapa:T$('terEtapa').value,valor:terTotal()/100,dataRef:T$('terData').value,nota:T$('terNota').value.trim(),obs:T$('terObs').value.trim(),
   anexo:terAnexo?terAnexo.url:'',forma:terForma,parcelas:terParc.map(p=>({descricao:p.descricao.trim(),valor:(p.valor||0)/100,vencimento:p.venc,pago:!!p.pago,dataPagamento:p.pago?p.dataPag:'',forma:p.pago?p.forma:'',comprovante:p.pago&&p.comp?p.comp.url:''}))};}
 const terAssin=()=>JSON.stringify(terPayload());
 const terSujo=()=>terTela==='form'&&terAssin()!==terFormIni;
@@ -1562,11 +1579,11 @@ function abrirDetalhesSeTiver(){const d=document.getElementById('maisDet');if(d)
 let SUCESSO=null;
 function obraTexto(){return OBRA_SEL&&MODO_OBRA==='lista'?OBRA_SEL.id+' · '+OBRA_SEL.endereco:[document.getElementById('endereco').value,document.getElementById('casa').value].filter(v=>v.trim()).join(' · ');}
 function mostrarSucesso(r){const its=cart.map(i=>({nome:i.nome,q:i.quantidade,un:i.unidade})),obra=obraTexto(),total=cart.reduce((s,i)=>s+(semPrecoV(i.preco)?0:Number(i.quantidade)*Number(i.preco)),0);
- SUCESSO={id:r.id,obra,its,total};
+ SUCESSO={id:r.id,obra,its,total,etapa:document.getElementById('etapaObra').value};
  const msg='*Pedido '+r.id+'*\nObra: '+obra+'\n\n'+its.map(i=>'• '+fmtQ(i.q)+' '+i.un+' — '+i.nome).join('\n')+'\n\nTotal: '+brl(total);
  const box=document.getElementById('sucessoBox');
  box.innerHTML=`<div class="suc-top"><span class="suc-ico" aria-hidden="true">✓</span><div><h2>Pedido salvo</h2><p class="muted">Guarde o número para acompanhar a entrega.</p></div></div>
-  <dl class="suc-dl"><div><dt>Nº do pedido</dt><dd class="mono">${esc(r.id)}</dd></div><div><dt>Obra</dt><dd>${esc(obra||'—')}</dd></div><div><dt>Itens</dt><dd>${nItens(its.length)}</dd></div><div><dt>Total</dt><dd>${brl(total)}</dd></div></dl>
+  <dl class="suc-dl"><div><dt>Nº do pedido</dt><dd class="mono">${esc(r.id)}</dd></div><div><dt>Obra</dt><dd>${esc(obra||'—')}${SUCESSO.etapa?`<span class="suc-etapa">Etapa: ${esc(SUCESSO.etapa)}</span>`:''}</dd></div><div><dt>Itens</dt><dd>${nItens(its.length)}</dd></div><div><dt>Total</dt><dd>${brl(total)}</dd></div></dl>
   <div class="btn-row suc-acoes"><a class="primary btn-link" id="sucZap" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Enviar no WhatsApp</a><button type="button" class="secondary" id="sucImp">Imprimir</button><button type="button" class="secondary" id="sucNovo">Novo pedido</button><button type="button" class="secondary" id="sucVer">Ver pedido</button></div>`;
  document.getElementById('sucImp').onclick=()=>printRelation();
  document.getElementById('sucNovo').onclick=()=>{esconderSucesso();irTela('novo',{nav:true});};
@@ -1585,7 +1602,7 @@ function pedLinhas(){if(!INDICE)return null;const mes=hojeLocal().slice(0,7);
   let ob='';try{ob=IDX_OBRAS?resolverObra_(p.casa,p.endereco,IDX_OBRAS):'';}catch(e){}
   const rua=String(p.endereco||'').split(/,| - /)[0].trim(),dias=[...new Set((p.entregas||[]).map(e=>e.data).filter(Boolean))].sort();
   const ult=dias.length?dias[dias.length-1]:(p.ultimaEntrega&&p.ultimaEntrega.data)||'';
-  return {p,id:p.id,criado:p.criado||p.atualizado||'',cod:String(p.id).slice(String(p.id).lastIndexOf('-')+1),ob,rua,atendente:p.atendente||'',entregador:p.entregador||'',n:its.length,total:Number(p.total)||0,semPreco:Number(p.semPreco)||0,sit,dias,
+  return {p,id:p.id,etapa:p.etapa||'',criado:p.criado||p.atualizado||'',cod:String(p.id).slice(String(p.id).lastIndexOf('-')+1),ob,rua,atendente:p.atendente||'',entregador:p.entregador||'',n:its.length,total:Number(p.total)||0,semPreco:Number(p.semPreco)||0,sit,dias,
    mesEnt:sit==='Entregue'&&ult.slice(0,7)===mes,busca:norm([p.id,p.atendente,p.entregador,p.endereco,p.casa,dmHora(p.criado)+'/'+String(p.criado||'').slice(0,4),dmHora(p.atualizado)].join(' | '))};});}
 const PED_FILTROS={'':()=>true,'A entregar':l=>l.sit==='A entregar','Parcial':l=>l.sit==='Parcial','Entregue':l=>l.sit==='Entregue','Fechado':l=>l.sit==='Cancelado'||l.sit==='Encerrado','mes':l=>l.mesEnt};
 const PED_COMP={data:(a,b)=>a.criado.localeCompare(b.criado),pedido:(a,b)=>a.cod.localeCompare(b.cod),obra:(a,b)=>(a.ob||a.rua).localeCompare(b.ob||b.rua,'pt-BR',{numeric:true}),atendente:(a,b)=>a.atendente.localeCompare(b.atendente,'pt-BR'),
@@ -1597,7 +1614,7 @@ function pedRender(){const box=document.getElementById('pedLista');if(!box)retur
  document.getElementById('pedResumo').innerHTML=[['A entregar','A entregar'],['Parcial','Parciais'],['mes','Entregues no mês']].map(([k,t])=>`<button type="button" class="ped-num${PED_F===k?' on':''}" data-pedf="${k}" aria-pressed="${PED_F===k}"><b>${cont(k)}</b><span>${t}</span></button>`).join('');
  document.getElementById('pedChips').innerHTML=[['','Todos'],['A entregar','A entregar'],['Parcial','Parcial'],['Entregue','Entregue'],['Fechado','Cancelado/Encerrado']].map(([k,t])=>`<button type="button" class="ped-chip${PED_F===k?' on':''}" data-pedf="${k}" aria-pressed="${PED_F===k}">${t} <b>${cont(k)}</b></button>`).join('');
  const o=PED_ORD,lista=base.filter(PED_FILTROS[PED_F]||PED_FILTROS['']).sort((a,b)=>o.d*PED_COMP[o.c](a,b)||b.criado.localeCompare(a.criado)),vis=lista.slice(0,PED_N);
- const ent=l=>l.dias.length?l.dias.map((d,i)=>(i+1)+'ª '+d.slice(8,10)+'/'+d.slice(5,7)).join(' · '):'—',obra=l=>l.ob?`<b class="mono">${esc(l.ob)}</b> ${esc(l.rua)}`:esc(l.rua||'—');
+ const ent=l=>l.dias.length?l.dias.map((d,i)=>(i+1)+'ª '+d.slice(8,10)+'/'+d.slice(5,7)).join(' · '):'—',obra=l=>(l.ob?`<b class="mono">${esc(l.ob)}</b> ${esc(l.rua)}`:esc(l.rua||'—'))+(l.etapa?`<span class="etapa-tag">· ${esc(l.etapa)}</span>`:'');
  const val=l=>brl(l.total)+(l.semPreco?` <small>+ ${l.semPreco} a cotar</small>`:''),selo=l=>`<span class="${PED_SIT_CL[l.sit]||'badge'}">${esc(l.sit)}</span>`;
  const th=(c,t,cl)=>`<th${cl?` class="${cl}"`:''}${o.c===c?` aria-sort="${o.d>0?'ascending':'descending'}"`:''}><button type="button" data-pedo="${c}">${t}${o.c===c?(o.d>0?' ▲':' ▼'):''}</button></th>`;
  box.innerHTML=!lista.length?`<div class="empty">${base.length?'Nenhum pedido com esse filtro.':'Nenhum pedido encontrado.'}</div>`:ehCelular()
