@@ -42,7 +42,7 @@ const PREFIXO_PEDIDO = 'ZAYDA-';
 // não têm cabeçalho. Assim funciona com ou sem cabeçalho na linha 1.
 function registros_(key) {
   // [ZAYDA 2.6] Só as colunas usadas (PEDIDOS A:O, ITENS_PEDIDO A:K), até a última linha com dados: o mesmo resultado do getDataRange, com leitura menor.
-  const sh = s_(key), n = sh.getLastRow(), cols = Math.min(key === 'itens' ? 11 : 16, sh.getMaxColumns()); // [ZAYDA 3.1] PEDIDOS até a coluna P (ETAPA)
+  const sh = s_(key), n = sh.getLastRow(), cols = Math.min(key === 'itens' ? 12 : 16, sh.getMaxColumns()); // [ZAYDA 3.2] ITENS_PEDIDO até a coluna L (PRECO_CATALOGO) // [ZAYDA 3.1] PEDIDOS até a coluna P (ETAPA)
   if (!n) return [];
   return sh.getRange(1, 1, n, cols).getValues().filter(r => String(r[0] || '').indexOf(PREFIXO_PEDIDO) === 0);
 }
@@ -98,7 +98,9 @@ function auth_() {
   if (cad.total) {
     const u = cad.porEmail[email];
     if (!u || !u.formulario || !u.ativo) throw new Error(negado);
-    return {email, empresa: conf.empresa, nome: u.nome, empresaUsuario: u.empresa};
+    // [ZAYDA 3.2] Admin Zayda (empresa Zayda + perfil Admin): pode atualizar o preço do catálogo ao salvar um pedido.
+    const semAc = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toUpperCase();
+    return {email, empresa: conf.empresa, nome: u.nome, empresaUsuario: u.empresa, adminZayda: semAc(u.empresa) === 'ZAYDA' && semAc(u.perfil) === 'ADMIN'};
   }
   if (!(domain && email.endsWith('@' + domain)) && !allow.includes(email)) {
     throw new Error(negado);
@@ -120,7 +122,7 @@ function usuarios_() {
       const em = String(r[0] || '').trim().toLowerCase();
       if (!em) return;
       out.total++;
-      if (!out.porEmail[em]) out.porEmail[em] = {nome: String(r[1] || '').trim(), empresa: String(r[3] || '').trim(), formulario: sim(r[5]), ativo: sim(r[7])};
+      if (!out.porEmail[em]) out.porEmail[em] = {nome: String(r[1] || '').trim(), empresa: String(r[3] || '').trim(), perfil: String(r[4] || '').trim(), formulario: sim(r[5]), ativo: sim(r[7])}; // [ZAYDA 3.2] perfil
     });
   }
   try { if (cache) cache.put(chave, JSON.stringify(out), 120); } catch (e) {}
@@ -210,7 +212,7 @@ function getPedido(id) {
   const rows=registros_('itens'); // [ZAYDA 1.1]
   const itens=rows.filter(r=>String(r[0])===found.id && Number(r[1])===found.revisao).map(r=>({
     sku:String(r[2]||''),nome:String(r[3]||''),categoria:String(r[4]||''),unidade:String(r[5]||''),
-    quantidade:Number(r[6]),preco:dinheiro_(r[7],true)
+    quantidade:Number(r[6]),preco:dinheiro_(r[7],true),precoCatalogo:dinheiro_(r[11],true) // [ZAYDA 3.2] L: preço do catálogo na hora do pedido
   }));
   const ent=resumoEntregas_(blocoAba_(abaEntregas_(false),2,14),found.id,found.entregador); // [ZAYDA 2.0] entregue, última entrega e lista numa leitura só
   itens.forEach(it=>{it.entregue=ent.entregue[it.sku]||0;it.falta=Math.max(0,Math.round((it.quantidade-it.entregue)*1000)/1000);}); // [ZAYDA 1.6] falta
@@ -321,6 +323,24 @@ function safeString_(x,max,field,required) {
   return s;
 }
 
+/** [ZAYDA 3.2] Atualiza o preço do catálogo (só Admin Zayda, já conferido em savePedido): na aba CATALOGO, desse SKU,
+ *  só PRECO_UNITARIO (número em moeda), STATUS_PRECO e FONTE_PRECO. Nada mais muda na linha. Devolve [{sku, preco}]. */
+function atualizarCatalogo_(itens, user, agora, pedidoId) {
+  if (!itens.length) return [];
+  const sh = s_('catalogo'), n = sh.getLastRow(); if (n < 2) return [];
+  const skus = sh.getRange(2, 1, n - 1, 1).getValues().map(r => String(r[0] || '').trim());
+  const dia = Utilities.formatDate(new Date(), FUSO_ZAYDA, 'dd/MM/yyyy'), quem = user.nome || user.email, feitos = [];
+  itens.forEach(it => { const i = skus.indexOf(it.sku); if (i < 0) return; const linha = i + 2;
+    sh.getRange(linha, 6).setNumberFormat('"R$" #,##0.00').setValue(it.preco);
+    sh.getRange(linha, 7, 1, 2).setNumberFormat('@').setValues([['PREÇO ATUALIZADO', 'Atualizado no formulário por ' + quem + ' em ' + dia]]);
+    feitos.push({sku: it.sku, preco: it.preco, antes: it.product.preco}); });
+  if (feitos.length) {
+    try { CacheService.getScriptCache().remove(CAT_CACHE); } catch (e) {} // a próxima abertura monta o catálogo de novo, com o preço novo
+    s_('auditoria').appendRow([agora, user.email, 'CATALOGO_PRECO', pedidoId, '', 'Preço do catálogo atualizado no pedido: ' +
+      feitos.map(f => f.sku + ' de ' + (f.antes == null ? '—' : f.antes.toFixed(2)) + ' para ' + f.preco.toFixed(2)).join('; ')]);
+  }
+  return feitos.map(f => ({sku: f.sku, preco: f.preco}));
+}
 function savePedido(payload) {
   const user=auth_();
   if (!payload || typeof payload !== 'object') throw new Error('Dados do formulário inválidos.');
@@ -358,12 +378,15 @@ function savePedido(payload) {
       const qtd=dinheiro_(it.quantidade,false);
       if(qtd===null||qtd<=0||qtd>100000||Math.abs(Math.round(qtd*1000)-qtd*1000)>1e-7) throw new Error('Quantidade inválida para '+product.produto);
       // O preço editado é registrado como cotação da solicitação, não altera o catálogo.
-      const preco=dinheiro_(it.preco,true);
+      const precoInf=dinheiro_(it.preco,true), preco=precoInf===null?null:Math.round(precoInf*100)/100; // [ZAYDA 3.2] preço do pedido: editável, duas casas
       if(preco===null||preco<=0){semPreco.push(product.produto);return;}
       if(preco>10000000)throw new Error('Preço inválido: '+product.produto);
       const subtotal=preco===null?null:Math.round(qtd*preco*100)/100;
       if(subtotal!==null) total+=subtotal;
-      parsed.push({sku,product,qtd,preco,subtotal});
+      // [ZAYDA 3.2] "Atualizar também no catálogo": só Admin Zayda; o servidor recusa para os outros perfis.
+      const atualizarCat=it.atualizarCatalogo===true&&product.preco!==null&&Math.abs(preco-product.preco)>=0.005;
+      if(it.atualizarCatalogo===true&&!user.adminZayda) throw new Error('Somente administradores da Zayda podem atualizar o preço do catálogo. Desmarque "Atualizar também no catálogo".');
+      parsed.push({sku,product,qtd,preco,subtotal,atualizarCat});
     });
     if(semPreco.length) throw new Error('Informe o preço dos materiais a cotar antes de salvar: '+semPreco.join(', '));
     total=Math.round(total*100)/100;
@@ -374,13 +397,15 @@ function savePedido(payload) {
     const pSheet=s_('pedidos'), linhaP=pSheet.getLastRow()+1;
     pSheet.getRange(linhaP,6,1,5).setNumberFormat('@'); pSheet.getRange(linhaP,15,1,2).setNumberFormat('@'); // [ZAYDA 1.9] texto, para "09:00" não virar hora
     pSheet.getRange(linhaP,1,1,pedidoRow[0].length).setValues(pedidoRow);
-    const itemRows=parsed.map(it=>[id,rev,it.sku,it.product.produto,it.product.categoria,it.product.unidade,it.qtd,it.preco,it.subtotal,it.preco===null?'SIM':'NAO',now]);
+    // [ZAYDA 3.2] Coluna L (no fim; a aba não tem cabeçalho): PRECO_CATALOGO = preço do catálogo na hora do pedido (vazio se "a cotar").
+    const itemRows=parsed.map(it=>[id,rev,it.sku,it.product.produto,it.product.categoria,it.product.unidade,it.qtd,it.preco,it.subtotal,it.preco===null?'SIM':'NAO',now,it.product.preco===null?'':it.product.preco]);
     const itSheet=s_('itens');itSheet.getRange(itSheet.getLastRow()+1,1,itemRows.length,itemRows[0].length).setValues(itemRows);
     const aud=s_('auditoria');aud.appendRow([now,user.email,'CRIACAO',id,rev,
       'Registro criado com '+parsed.length+' itens; total conhecido R$ '+total.toFixed(2)+'; '+missing+' item(ns) a cotar.']);
     SpreadsheetApp.flush();
     marcarVersaoPedidos_(); // [ZAYDA 1.8]
-    const resultado={id,revisao:rev,status,total,semPreco:missing,itens:parsed.length,atualizado:now};
+    const catAtualizados=atualizarCatalogo_(parsed.filter(it=>it.atualizarCat),user,now,id); // [ZAYDA 3.2]
+    const resultado={id,revisao:rev,status,total,semPreco:missing,itens:parsed.length,atualizado:now,catalogo:catAtualizados};
     if(cache) { try{ cache.put(chave, JSON.stringify(resultado), 600); }catch(e){} } // [ZAYDA 1.9] 10 minutos
     return resultado;
   }finally{lock.releaseLock();}
@@ -665,7 +690,7 @@ function resumoEntregas_(linhas, pedidoId, entregadorPedido) {
 function montarPedido_(found, linhasItens, ent, cancelamento) {
   const itens = linhasItens.filter(r => String(r[0]) === found.id && Number(r[1]) === found.revisao).map(r => ({
     sku:String(r[2]||''),nome:String(r[3]||''),categoria:String(r[4]||''),unidade:String(r[5]||''),
-    quantidade:Number(r[6]),preco:dinheiro_(r[7],true)
+    quantidade:Number(r[6]),preco:dinheiro_(r[7],true),precoCatalogo:dinheiro_(r[11],true) // [ZAYDA 3.2]
   }));
   itens.forEach(it=>{it.entregue=ent.entregue[it.sku]||0;it.falta=Math.max(0,Math.round((it.quantidade-it.entregue)*1000)/1000);});
   return {...found, itens, ultimaEntrega: ent.ultima, cancelamento: cancelamento || null, entregas: ent.lista};
@@ -690,7 +715,7 @@ function getIndicePedidos() {
     if (!atual[id] || Number(r[1] || 0) > atual[id].revisao) atual[id] = registroPedido_(r);
   });
   const itensPorId = {};
-  blocoAba_(s_('itens'), 1, 8).forEach(r => { const k = String(r[0] || ''); if (atual[k]) (itensPorId[k] = itensPorId[k] || []).push(r); });
+  blocoAba_(s_('itens'), 1, 12).forEach(r => { const k = String(r[0] || ''); if (atual[k]) (itensPorId[k] = itensPorId[k] || []).push(r); });
   const entPorId = {};
   blocoAba_(abaEntregas_(false), 2, 14).forEach(r => { const k = String(r[1]); if (atual[k]) (entPorId[k] = entPorId[k] || []).push(r); });
   const canc = cancelamentos_();
