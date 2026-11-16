@@ -1324,7 +1324,8 @@ function terPagSit(l){const ps=l.parcelas||[],tot=terCent(l.valor),pago=ps.filte
  return {c:'apagar',t:'A pagar'};}
 const terSeloPag=l=>{const s=terPagSit(l);return `<span class="ter-s ${s.c}">${esc(s.t)}</span>`;};
 const terPodeEditar=l=>TERD&&(l.conferencia==='AGUARDANDO'||l.conferencia==='REPROVADO')&&(String(l.criadoPor).toLowerCase()===TERD.eu.email||TERD.eu.zayda);
-const terPodeDesfazer=p=>TERD&&p.pago&&String(p.registradoEm).slice(0,10)===terHoje()&&(String(p.registradoPor).toLowerCase()===TERD.eu.email||TERD.eu.zayda);
+const terFin=()=>!!(TERD&&TERD.eu&&TERD.eu.fin); // registrar/desfazer pagamento: equipe Zayda ou financeiro (o servidor confere de novo)
+const terPodeDesfazer=p=>TERD&&terFin()&&p.pago&&String(p.registradoEm).slice(0,10)===terHoje()&&(String(p.registradoPor).toLowerCase()===TERD.eu.email||TERD.eu.zayda);
 
 /* ---------- abrir / fechar a tela ---------- */
 function terMostrar(tela){terTela=tela;T$('terListaBox').hidden=tela!=='lista';T$('terFormBox').hidden=tela!=='form';T$('terDetBox').hidden=tela!=='det';}
@@ -1364,7 +1365,7 @@ function terDetalhe(id,atualizar){const l=TERD&&TERD.lancamentos.find(x=>x.id===
  const parc=(l.parcelas||[]).map(p=>{const venc=!p.pago&&p.vencimento&&p.vencimento<hoje;
   return `<div class="ter-pl"><span><b>${esc(p.descricao)}</b></span><span class="n">${terBrl(terCent(p.valor))}</span><span class="n${venc?' venc':''}">${venc?'Vencida · ':'Vence '}${terDia(p.vencimento)}</span>
   <span class="pgto">${p.pago?`<span class="ter-s pago">Paga em ${terDia(p.dataPagamento)} · ${esc(p.forma)}</span>${p.comprovante?` <a href="${esc(p.comprovante)}" target="_blank" rel="noopener">Comprovante</a>`:''}`:`<span class="ter-s ${venc?'vencido':'apagar'}">Não paga</span>`}</span>
-  <span class="acao">${!p.pago&&pagavel?`<button class="primary" type="button" data-pagar="${esc(p.id)}">Marcar como paga</button>`:''}${terPodeDesfazer(p)&&c!=='CANCELADO'?`<button class="secondary" type="button" data-desfazer="${esc(p.id)}">Desfazer pagamento</button>`:''}</span></div>`;}).join('');
+  <span class="acao">${!p.pago&&pagavel&&terFin()?`<button class="primary" type="button" data-pagar="${esc(p.id)}">Marcar como paga</button>`:''}${terPodeDesfazer(p)&&c!=='CANCELADO'?`<button class="secondary" type="button" data-desfazer="${esc(p.id)}">Desfazer pagamento</button>`:''}</span></div>`;}).join('');
  T$('terDetBox').innerHTML=`<div class="ter-cab"><h2>${esc(l.fornecedor)} · ${terBrl(terCent(l.valor))}</h2><div class="btn-row">${terPodeEditar(l)?'<button class="primary" type="button" id="terEditarBtn">Editar</button>':''}<button class="secondary" type="button" id="terImprimirBtn">Imprimir</button><button class="secondary" type="button" id="terDetVoltar">Voltar à lista</button></div></div>
   <div class="ter-conf ${esc(c.toLowerCase())}">${esc(conf)}</div>
   <div class="ter-det">${f('Código',`<b>${esc(l.id)}</b>`)}${f('Data de referência',terDia(l.dataRef))}${f('Tipo',esc(l.tipo))}
@@ -1511,8 +1512,8 @@ function terParcRender(){const unico=terForma==='UNICO',tot=terTotal(),hoje=terH
   <div${unico?' hidden':''}><label for="tpv${i}">Valor *</label><input id="tpv${i}" data-pc="valor" inputmode="numeric" autocomplete="off" value="${p.valor?terBrl(p.valor):''}" placeholder="R$ 0,00"></div>
   <div><label for="tpe${i}">Vencimento *</label><input id="tpe${i}" data-pc="venc" type="date" value="${esc(p.venc)}"></div>
   <div${unico||terParc.length<2?' hidden':''}><button class="plain" type="button" data-prem="${i}" aria-label="Remover parcela ${i+1}">Remover</button></div></div>
-  <label class="pago"><input type="checkbox" data-pc="pago"${p.pago?' checked':''}> Já paga</label>
-  <div class="pagos"${p.pago?'':' hidden'}><div><label for="tpp${i}">Data do pagamento *</label><input id="tpp${i}" data-pc="dataPag" type="date" max="${hoje}" value="${esc(p.dataPag)}"></div>
+  ${terFin()?`<label class="pago"><input type="checkbox" data-pc="pago"${p.pago?' checked':''}> Já paga</label>`:p.pago?`<div class="ter-s pago" style="margin-top:8px">Paga em ${terDia(p.dataPag)}${p.forma?' · '+esc(p.forma):''}</div>`:''}
+  <div class="pagos"${p.pago&&terFin()?'':' hidden'}><div><label for="tpp${i}">Data do pagamento *</label><input id="tpp${i}" data-pc="dataPag" type="date" max="${hoje}" value="${esc(p.dataPag)}"></div>
   <div><label for="tpf${i}">Forma *</label><select id="tpf${i}" data-pc="forma"><option value="">Escolha</option>${(TERD?TERD.formas:[]).map(f=>`<option${p.forma===f?' selected':''}>${esc(f)}</option>`).join('')}</select></div>
   <div class="c"><label for="tpc${i}">Comprovante (opcional)</label><input id="tpc${i}" data-pc="arq" type="file" accept="image/*,application/pdf"><div class="ter-arq" data-pinfo hidden></div></div></div></div>`).join('');
  T$('terParcelas').querySelectorAll('.ter-parc').forEach(box=>{const i=+box.dataset.pi,p=terParc[i],info=box.querySelector('[data-pinfo]');if(p.comp)terMostrarArq(info,p.comp,()=>{p.comp=null;});});

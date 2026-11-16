@@ -846,8 +846,15 @@ function terUsuario_() {
   const u = usuarios_().porEmail[a.email];
   if (!u || !u.formulario || !u.ativo) throw new Error('Outros fornecedores: seu e-mail precisa estar ativo na aba USUARIOS com FORMULARIO = Sim.');
   const zayda = String(u.empresa || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toUpperCase() === 'ZAYDA';
-  return {email: a.email, nome: u.nome, empresa: u.empresa, zayda};
+  return {email: a.email, nome: u.nome, empresa: u.empresa, zayda, fin: podeFinanceiro_(u)};
 }
+/** Quem pode registrar e desfazer pagamentos (e conferir, no painel): ativo e da Zayda (qualquer perfil) ou perfil Admin
+ *  (hoje, a Mayara, financeiro da BSJ). A mesma regra está no painel (Controle.js, podeFinanceiro_). */
+function podeFinanceiro_(u) {
+  const t = v => String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toUpperCase();
+  return !!u && !!u.ativo && (t(u.empresa) === 'ZAYDA' || t(u.perfil) === 'ADMIN');
+}
+const TER_SO_FIN = 'Só a equipe Zayda ou o financeiro podem registrar pagamentos.';
 /** Para o botão da barra de topo: só aparece para quem pode usar (o servidor confere de novo em cada ação). */
 function terceirosAcesso() {
   try { const u = terUsuario_(); return {pode: true, zayda: u.zayda, email: u.email}; } catch (e) { return {pode: false}; }
@@ -951,7 +958,7 @@ function terceirosDados() {
   const lancs = terLinhas_(TER.abaLanc, TER.cabLanc).filter(r => String(r[0] || '').indexOf('TER-') === 0).map(r => {
     const l = terLancObj_(r); l.parcelas = (parc[l.id] || []).sort((a, b) => a.numero - b.numero); return l; })
     .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm) || b.id.localeCompare(a.id));
-  return JSON.stringify({eu: {email: u.email, nome: u.nome, zayda: u.zayda}, hoje: terHoje_(), obras: terObras_(),
+  return JSON.stringify({eu: {email: u.email, nome: u.nome, zayda: u.zayda, fin: u.fin}, hoje: terHoje_(), obras: terObras_(),
     fornecedores: terFornecedores_().filter(f => f.ativo), lancamentos: lancs, etapas: ETAPAS_OBRA.slice(), tipos: TER.tipos, unidades: TER.unidades, formas: TER.formas});
 }
 
@@ -1008,10 +1015,13 @@ function terParcelas_(lista, forma, total, idLanc, antigas, u) {
       const ant = porNum[n];
       // Pagamento que já estava registrado igual continua com quem/quando registrou.
       if (ant && ant.pago && ant.dataPagamento === dataPag && ant.forma === fp && Math.abs(ant.valor - valor) < 0.005) { regPor = ant.registradoPor; regEm = ant.registradoEm; if (!comp) comp = ant.comprovante; }
-      else { regPor = u.email; regEm = agora; }
+      else { if (!u.fin) throw new Error(TER_SO_FIN); regPor = u.email; regEm = agora; }
     }
+    if (pago === 'NAO' && porNum[n] && porNum[n].pago && !u.fin) throw new Error(TER_SO_FIN); // tirar "paga" na edição = desfazer pagamento
     return [idLanc + '-P' + n, idLanc, n, desc, valor, venc, pago, dataPag, fp, comp, regPor, regEm];
   });
+  // Parcela paga que saiu na edição também apagaria o pagamento.
+  if (!u.fin && (antigas || []).some(p => p.pago && p.numero > lista.length)) throw new Error(TER_SO_FIN);
   if (soma !== Math.round(total * 100)) {
     const dif = (Math.round(total * 100) - soma) / 100;
     throw new Error('A soma das parcelas (R$ ' + (soma / 100).toFixed(2).replace('.', ',') + ') não bate com o valor total (R$ ' + total.toFixed(2).replace('.', ',') +
@@ -1124,6 +1134,7 @@ function terParcelaLinha_(idParcela) {
 }
 /** Marca uma parcela como paga. dados = {data:'aaaa-mm-dd', forma, comprovante}. Vale em AGUARDANDO, REPROVADO ou CONFERIDO. */
 function registrarPagamento(idParcela, dados) {
+  if (!terUsuario_().fin) throw new Error(TER_SO_FIN);
   const u = terUsuario_();
   dados = dados && typeof dados === 'object' ? dados : {};
   const lock = terLock_();
@@ -1143,6 +1154,7 @@ function registrarPagamento(idParcela, dados) {
 }
 /** Desfaz o pagamento de uma parcela: só no mesmo dia em que foi registrado, por quem registrou ou usuário da Zayda. */
 function desfazerPagamento(idParcela) {
+  if (!terUsuario_().fin) throw new Error(TER_SO_FIN);
   const u = terUsuario_();
   const lock = terLock_();
   try {
