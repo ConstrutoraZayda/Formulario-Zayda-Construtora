@@ -1043,6 +1043,47 @@ function printRelation() {
   window.print();
 }
 
+/* [ZAYDA 3.4] Impressão de um lançamento de Outros fornecedores: mesma folha A4 (#printSheet) e mesmo visual da impressão do pedido. */
+function terImprimir(id){ const l=TERD&&TERD.lancamentos.find(x=>x.id===id); if(!l) return;
+  const o=terObra(l.obra), f=(TERD.fornecedores||[]).find(x=>x.id===l.fornecedorId)||{}, hoje=terHoje(), ps=l.parcelas||[];
+  const field=(label,value,cls)=>`<div class="print-field${cls?' '+cls:''}"><div class="key">${esc(label)}</div><div class="val">${esc(value==null||value===''?'—':value)}</div></div>`;
+  const CONF={AGUARDANDO:['draft','AGUARDANDO CONFERÊNCIA'],CONFERIDO:['','CONFERIDO'],REPROVADO:['fechado','REPROVADO'],CANCELADO:['fechado','CANCELADO']}[l.conferencia]||['draft',l.conferencia];
+  const dias=(a,b)=>{const d=s=>Date.UTC(+s.slice(0,4),+s.slice(5,7)-1,+s.slice(8,10));return Math.round((d(b)-d(a))/864e5);};
+  const sit=x=>x.pago?'Paga em '+terDia(x.dataPagamento)+(x.forma?' · '+x.forma:''):x.vencimento&&x.vencimento<hoje?'Vencida há '+dias(x.vencimento,hoje)+(dias(x.vencimento,hoje)===1?' dia':' dias'):'Não paga';
+  const pago=ps.filter(x=>x.pago).reduce((s,x)=>s+(Number(x.valor)||0),0), aPagar=ps.filter(x=>!x.pago).reduce((s,x)=>s+(Number(x.valor)||0),0);
+  const linhas=ps.map(x=>`<tr><td>${x.numero}</td><td><div class="item-name">${esc(x.descricao||'Parcela '+x.numero)}</div></td><td class="num">${brl(Number(x.valor)||0)}</td><td>${terDia(x.vencimento)}</td><td>${esc(sit(x))}</td></tr>`).join('');
+  const agora=new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date());
+  const qtd=l.quantidade!=null&&!isNaN(l.quantidade)?fmtQ(l.quantidade)+(l.unidade?' '+l.unidade:''):'';
+  const wrapper=`<div class="print-page">
+    <div class="print-head">
+      <div class="print-brand"><img class="print-real-logo" src="${document.getElementById('brandLogo').src}" alt="Zayda Construtora" /></div>
+      <div class="print-doclabel"><span>LANÇAMENTO DE OUTRO FORNECEDOR</span><strong>${esc(l.id)}</strong><small>Data de referência ${terDia(l.dataRef)}</small>
+        <div class="print-chip${CONF[0]?' '+CONF[0]:''}">${esc(CONF[1])}</div></div>
+    </div>
+    <div class="print-section-name">Obra</div>
+    <div class="print-info">${field('Obra',l.obra+(o?' · '+o.endereco:''),'wide')}${l.etapa?field('Etapa da obra',l.etapa):''}</div>
+    <div class="print-section-name">Fornecedor</div>
+    <div class="print-info">${field('Fornecedor',l.fornecedor,'wide')}${field('Tipo',f.tipo||l.tipo)}${f.doc?field('CPF/CNPJ',f.doc):''}${f.telefone?field('Telefone',f.telefone):''}</div>
+    <div class="print-section-name">Compra / serviço</div>
+    <div class="print-info">${field('Tipo',l.tipo)}${field('Descrição',l.descricao,'full')}${qtd?field('Quantidade',qtd):''}${field('Nº da nota/orçamento',l.nota)}${field('Data de referência',terDia(l.dataRef))}</div>
+    <div class="print-section-name">Valores e parcelas</div>
+    <div class="print-info">${field('Valor total',brl(Number(l.valor)||0))}${field('Forma de pagamento',l.forma==='PARCELADO'?'Parcelado em '+ps.length:'Único')}</div>
+    <table class="print-table"><thead><tr><th style="width:6%">Nº</th><th style="width:34%">Descrição</th><th class="num" style="width:18%">Valor</th><th style="width:16%">Vencimento</th><th style="width:26%">Situação</th></tr></thead><tbody>${linhas||'<tr><td colspan="5">Sem parcelas.</td></tr>'}</tbody></table>
+    <div class="print-lower">
+      <div>${l.obs?`<div class="print-section-name" style="margin-top:0">Observação</div><div class="print-notes">${esc(l.obs)}</div>`:''}${l.anexo?'<div class="print-notes" style="margin-top:6px">Nota anexada no sistema.</div>':''}</div>
+      <div class="print-summary-box">
+        <div class="print-summary-row"><span>Pago</span><b>${brl(pago)}</b></div>
+        <div class="print-summary-row"><span>A pagar</span><b>${brl(aPagar)}</b></div>
+        <div class="print-summary-total"><span>Valor total</span><strong>${brl(Number(l.valor)||0)}</strong></div>
+      </div></div>
+    <div class="print-info" style="margin-top:12px">${field('Lançado por',(l.criadoPor||'—')+' em '+terQuando(l.criadoEm))}${l.conferidoPor?field(l.conferencia==='REPROVADO'?'Reprovado por':l.conferencia==='CANCELADO'?'Cancelado por':'Conferido por',l.conferidoPor+' em '+terQuando(l.conferidoEm)+(l.motivo?' · Motivo: '+l.motivo:'')):''}${field('Emitido por',(user&&(user.nome||user.email)||'—')+' em '+agora)}</div>
+    <div class="print-bottom"><span><strong>ZAYDA CONSTRUTORA</strong> · Controle interno de compras e serviços</span><span>Lançamento não comprova pagamento sem o comprovante.</span></div>
+  </div>`;
+  document.getElementById('printSheet').innerHTML='<table class="print-folha"><thead><tr><td><div class="print-esp"></div></td></tr></thead><tfoot><tr><td><div class="print-esp"></div></td></tr></tfoot><tbody><tr><td>'+wrapper+'</td></tr></tbody></table>';
+  ajustarUmaPagina();
+  window.print();
+}
+
 /* [ZAYDA 1.2] Confirmação de entrega */
 const fmtQ=n=>new Intl.NumberFormat('pt-BR',{maximumFractionDigits:3}).format(Number(n)||0);
 function hojeLocal(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -1324,7 +1365,7 @@ function terDetalhe(id,atualizar){const l=TERD&&TERD.lancamentos.find(x=>x.id===
   return `<div class="ter-pl"><span><b>${esc(p.descricao)}</b></span><span class="n">${terBrl(terCent(p.valor))}</span><span class="n${venc?' venc':''}">${venc?'Vencida · ':'Vence '}${terDia(p.vencimento)}</span>
   <span class="pgto">${p.pago?`<span class="ter-s pago">Paga em ${terDia(p.dataPagamento)} · ${esc(p.forma)}</span>${p.comprovante?` <a href="${esc(p.comprovante)}" target="_blank" rel="noopener">Comprovante</a>`:''}`:`<span class="ter-s ${venc?'vencido':'apagar'}">Não paga</span>`}</span>
   <span class="acao">${!p.pago&&pagavel?`<button class="primary" type="button" data-pagar="${esc(p.id)}">Marcar como paga</button>`:''}${terPodeDesfazer(p)&&c!=='CANCELADO'?`<button class="secondary" type="button" data-desfazer="${esc(p.id)}">Desfazer pagamento</button>`:''}</span></div>`;}).join('');
- T$('terDetBox').innerHTML=`<div class="ter-cab"><h2>${esc(l.fornecedor)} · ${terBrl(terCent(l.valor))}</h2><div class="btn-row">${terPodeEditar(l)?'<button class="primary" type="button" id="terEditarBtn">Editar</button>':''}<button class="secondary" type="button" id="terDetVoltar">Voltar à lista</button></div></div>
+ T$('terDetBox').innerHTML=`<div class="ter-cab"><h2>${esc(l.fornecedor)} · ${terBrl(terCent(l.valor))}</h2><div class="btn-row">${terPodeEditar(l)?'<button class="primary" type="button" id="terEditarBtn">Editar</button>':''}<button class="secondary" type="button" id="terImprimirBtn">Imprimir</button><button class="secondary" type="button" id="terDetVoltar">Voltar à lista</button></div></div>
   <div class="ter-conf ${esc(c.toLowerCase())}">${esc(conf)}</div>
   <div class="ter-det">${f('Código',`<b>${esc(l.id)}</b>`)}${f('Data de referência',terDia(l.dataRef))}${f('Tipo',esc(l.tipo))}
   ${f('Obra',esc(l.obra)+(o?' · '+esc(o.endereco):''),true)}${l.etapa?f('Etapa da obra',esc(l.etapa)):''}${f('Descrição',esc(l.descricao),true)}
@@ -1334,7 +1375,7 @@ function terDetalhe(id,atualizar){const l=TERD&&TERD.lancamentos.find(x=>x.id===
   <div class="ter-cab" style="margin-top:14px"><h2 style="font-size:15px">Parcelas</h2><span>${terSeloPag(l)}</span></div>
   <div class="ter-pl cab"><span>Descrição</span><span class="n">Valor</span><span class="n">Vencimento</span><span>Pagamento</span><span></span></div>${parc||'<p class="muted">Sem parcelas.</p>'}`;
  terMostrar('det');if(!atualizar)window.scrollTo(0,0);
- const eb=T$('terEditarBtn');if(eb)eb.onclick=()=>terEditar(l.id);T$('terDetVoltar').onclick=()=>{terDetId='';terMostrar('lista');};
+ const eb=T$('terEditarBtn');if(eb)eb.onclick=()=>terEditar(l.id);T$('terImprimirBtn').onclick=()=>terImprimir(l.id);T$('terDetVoltar').onclick=()=>{terDetId='';terMostrar('lista');};
  T$('terDetBox').querySelectorAll('[data-pagar]').forEach(b=>b.onclick=()=>terAbrirPag(l,b.dataset.pagar,b));
  T$('terDetBox').querySelectorAll('[data-desfazer]').forEach(b=>b.onclick=()=>terDesfazer(l,b.dataset.desfazer,b));}
 
