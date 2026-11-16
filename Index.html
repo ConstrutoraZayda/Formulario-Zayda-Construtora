@@ -349,6 +349,12 @@ body{background:var(--bg)}
 /* ficha do pedido salvo: identificação e relação como leitura */
 body.travado #secIdent .fields input,body.travado #secIdent .obrain input{border-color:transparent;background:transparent;padding-left:0;box-shadow:none;font-weight:700;color:var(--ink);-webkit-text-fill-color:var(--ink)}
 body.travado #secIdent .obrabox .obraok{display:none}
+body.travado #secIdent .fields select{border-color:transparent;background:transparent;padding-left:0;box-shadow:none;font-weight:700;color:var(--ink);-webkit-text-fill-color:var(--ink);opacity:1;-webkit-appearance:none;appearance:none;pointer-events:none}
+body.travado #etapaObraDica{display:none}
+.ped-atu{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin:-6px 0 10px;font-size:12px;color:var(--ink-3)}
+.ped-atu .secondary{min-height:40px;padding:6px 12px;font-size:13px}
+.conf-itens{margin:6px 0 0;padding-left:18px;font-size:14px}
+@media (max-width:900px){.ped-atu .secondary{min-height:44px}}
 body.travado .mais-det{border:0;padding:0}body.travado .mais-det>summary{display:none}
 .mais-det[hidden]{display:none}
 #entregaPanel.concluida>p.muted,#entregaPanel.concluida #entregaItens,#entregaPanel.concluida .entrega-fields,#entregaPanel.concluida .assin-box,#entregaPanel.concluida>.btn-row{display:none!important}
@@ -395,7 +401,7 @@ body.com-atalho #message.toast{bottom:calc(76px + env(safe-area-inset-bottom,0px
  input,textarea,select{background:var(--surface-2)!important;color:var(--ink)!important;border-color:var(--line)!important}
  input::placeholder,textarea::placeholder{color:#7f8f85}
  .fields input:disabled,.cartinputs input:disabled{background:transparent!important;-webkit-text-fill-color:var(--ink)}
- body.travado #secIdent .fields input,body.travado #secIdent .obrain input{border-color:transparent!important;background:transparent!important}
+ body.travado #secIdent .fields input,body.travado #secIdent .obrain input,body.travado #secIdent .fields select{border-color:transparent!important;background:transparent!important}
  .secondary,.ter-link{background:var(--surface-2)!important;color:var(--ink)!important}
  .ter-link{background:none!important;color:var(--brand)!important}
  .primary,.btn-link.primary{background:#2F8550!important;color:#fff!important}
@@ -571,7 +577,7 @@ zTemaAplicar(zTemaLer());
 </main>
 <aside class="sticky"><section class="panel" id="relacaoCard"><h2>3. Relação dos materiais <span id="counter" class="badge">0 itens</span></h2><div id="cart" class="empty">Escolha os materiais pesquisando no catálogo.</div><div id="pending" class="warning" hidden></div><div class="total"><span>Subtotal com preços definidos</span><strong id="total">R$ 0,00</strong></div><div class="naosalvo" id="naoSalvo" role="status" hidden>Alterações não salvas</div><div class="btn-row actions"><button class="primary" id="saveBtn" type="button" onclick="save()">Salvar solicitação</button><button class="secondary" id="cancelarBtn" type="button" onclick="pedirCancelamento()" hidden>Cancelar pedido</button><button class="secondary" id="encerrarBtn" type="button" onclick="pedirEncerramento()" hidden>Encerrar o que falta</button><button class="secondary" type="button" onclick="printRelation()">Imprimir relação</button></div><p class="muted" id="notaValor">O valor só soma os itens com preço preenchido. Produtos “A cotar” precisam de preço para salvar.</p></section></aside>
 </div>
-<div id="telaPedidos" hidden><section class="panel recent" id="pedidosBox"><h2>Pedidos</h2><label for="buscaPedido">Buscar pedido</label><input id="buscaPedido" type="search" autocomplete="off" placeholder="Código, atendente, entregador, obra, casa ou data (dd/mm)"><div class="ped-resumo" id="pedResumo"></div><div class="ped-chips" id="pedChips" role="group" aria-label="Filtrar pedidos"></div><div id="pedLista"><div class="skel-lista" aria-busy="true" aria-label="Carregando"><div class="skel-lin"><i></i><i></i><i></i></div><div class="skel-lin"><i></i><i></i><i></i></div><div class="skel-lin"><i></i><i></i><i></i></div><div class="skel-lin"><i></i><i></i><i></i></div></div></div><button type="button" class="ped-mais" id="pedMais" hidden>Ver mais</button><div id="buscaResultados" class="muted" style="margin-top:8px"></div><div id="recentBox"><strong style="display:block;font-size:13px;margin-top:14px">Últimas solicitações</strong><div id="recentList" class="muted" style="margin-top:8px">Carregando...</div><button type="button" id="verMais" onclick="verMaisPedidos()" hidden>Ver mais</button></div></section></div>
+<div id="telaPedidos" hidden><section class="panel recent" id="pedidosBox"><h2>Pedidos</h2><div class="ped-atu"><span id="pedAtuTxt" role="status"></span><button type="button" class="secondary" id="pedAtu">Atualizar</button></div><label for="buscaPedido">Buscar pedido</label><input id="buscaPedido" type="search" autocomplete="off" placeholder="Código, atendente, entregador, obra, casa ou data (dd/mm)"><div class="ped-resumo" id="pedResumo"></div><div class="ped-chips" id="pedChips" role="group" aria-label="Filtrar pedidos"></div><div id="pedLista"><div class="skel-lista" aria-busy="true" aria-label="Carregando"><div class="skel-lin"><i></i><i></i><i></i></div><div class="skel-lin"><i></i><i></i><i></i></div><div class="skel-lin"><i></i><i></i><i></i></div><div class="skel-lin"><i></i><i></i><i></i></div></div></div><button type="button" class="ped-mais" id="pedMais" hidden>Ver mais</button><div id="buscaResultados" class="muted" style="margin-top:8px"></div><div id="recentBox"><strong style="display:block;font-size:13px;margin-top:14px">Últimas solicitações</strong><div id="recentList" class="muted" style="margin-top:8px">Carregando...</div><button type="button" id="verMais" onclick="verMaisPedidos()" hidden>Ver mais</button></div></section></div>
 <!-- [ZAYDA 2.3] Outros fornecedores: compras e serviços fora da loja BSJ -->
 <div id="terView" class="ter" hidden>
 <section class="panel" id="terListaBox"><div class="ter-cab"><h2>Outros fornecedores</h2><div class="btn-row"><button class="primary" type="button" id="terNovoBtn">+ Novo lançamento</button><button class="secondary" type="button" id="terVoltarBtn">Voltar aos pedidos</button></div></div>
@@ -690,17 +696,19 @@ function aplicarEstado(){const g=id=>document.getElementById(id),aberto=!!curren
  g('cancelarBtn').disabled=g('encerrarBtn').disabled=fechando;
  atualizarSujo();}
 /* Confirmação na própria tela */
-let confFn=null,confVolta=null,confComMotivo=false;
+let confFn=null,confVolta=null,confComMotivo=false,confMin=5,confErroMin='';
 /* op.lista: HTML do que listar; op.motivo: rótulo do campo de motivo (obrigatório, mínimo 5 caracteres). */
 function pedirConfirmacao(msg,sim,fn,op){const g=id=>document.getElementById(id);op=op||{};g('confTexto').textContent=msg;g('confSim').textContent=sim;
  g('confLista').innerHTML=op.lista||'';g('confLista').hidden=!op.lista;confComMotivo=!!op.motivo;g('confMotivoBox').hidden=!confComMotivo;g('confErro').hidden=true;
- if(confComMotivo){g('confMotivoRot').textContent=op.motivo;g('confMotivo').value='';}
+ if(confComMotivo){g('confMotivoRot').textContent=op.motivo;g('confMotivo').value='';g('confMotivo').rows=op.linha?1:3;}
+ confMin=op.minimo||5;confErroMin=op.erroMin||'Informe o motivo (mínimo 5 caracteres).';
  confFn=fn;confVolta=document.activeElement;g('confFundo').hidden=false;(confComMotivo?g('confMotivo'):g('confNao')).focus();}
 function fecharConfirmacao(ok){let motivo='';
- if(ok&&confComMotivo){motivo=document.getElementById('confMotivo').value.trim();if(motivo.length<5){const e=document.getElementById('confErro');e.textContent='Informe o motivo (mínimo 5 caracteres).';e.hidden=false;document.getElementById('confMotivo').focus();return;}}
+ if(ok&&confComMotivo){motivo=document.getElementById('confMotivo').value.trim();if(motivo.length<confMin){const e=document.getElementById('confErro');e.textContent=confErroMin||'Informe o motivo (mínimo 5 caracteres).';e.hidden=false;document.getElementById('confMotivo').focus();return;}}
  const fn=confFn;confFn=null;document.getElementById('confFundo').hidden=true;if(confVolta&&confVolta.focus)confVolta.focus({preventScroll:true});confVolta=null;if(ok&&fn)fn(motivo);}
 document.getElementById('confSim').onclick=()=>fecharConfirmacao(true);
 document.getElementById('confNao').onclick=()=>fecharConfirmacao(false);
+document.getElementById('confMotivo').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.rows===1){e.preventDefault();fecharConfirmacao(true);}}); // [ZAYDA 3.3] campo de uma linha: Enter confirma
 document.getElementById('confFundo').addEventListener('click',e=>{if(e.target.id==='confFundo')fecharConfirmacao(false);});
 document.addEventListener('keydown',e=>{if(document.getElementById('confFundo').hidden)return;if(e.key==='Escape'){fecharConfirmacao(false);return;}if(e.key==='Tab'){e.preventDefault();const l=[confComMotivo?document.getElementById('confMotivo'):null,document.getElementById('confNao'),document.getElementById('confSim')].filter(Boolean),i=l.indexOf(document.activeElement);l[(i+(e.shiftKey?l.length-1:1))%l.length].focus();}});
 function confirmarSaida(fn){if(sujo())pedirConfirmacao('Há alterações não salvas que serão perdidas. Deseja continuar?','Continuar sem salvar',fn);else fn();}
@@ -712,7 +720,7 @@ function pedirEncerramento(){if(!currentOrder||fechando)return;const f=itensPedi
   {motivo:'Motivo',lista:'<strong>O que falta:</strong><ul>'+f.map(it=>'<li>'+fmtQ(faltaItem(it))+' '+esc(it.unidade)+' · '+esc(it.nome)+'</li>').join('')+'</ul>'});}
 function fecharPedido(tipo,motivo){const id=currentOrder,assin=JSON.stringify([tipo,id,motivo]);if(tentFechar.assin!==assin)tentFechar={assin,chave:novaChave()};
  fechando=true;aplicarEstado();notify(tipo==='CANCELADO'?'Cancelando o pedido…':'Encerrando o que falta…');
- google.script.run.withSuccessHandler(r=>{fechando=false;tentFechar={assin:'',chave:''};
+ google.script.run.withSuccessHandler(r=>{fechando=false;tentFechar={assin:'',chave:''};setTimeout(carregarIndice,0); // [ZAYDA 3.3]
    if(INDICE&&INDICE[id])guardarNoIndice(Object.assign(copia(INDICE[id]),{cancelamento:r}));
    if(id===currentOrder){cancelamento=r;if(INDICE&&INDICE[id])PEDIDO_TELA=JSON.stringify(INDICE[id]);renderEntrega();}
    notify(tipo==='CANCELADO'?'Pedido '+id+' cancelado.':'Pedido '+id+' encerrado. O que faltava ficou como não entregue.');
@@ -889,23 +897,31 @@ function save(){if(salvando)return;if(!user){notify('Sem login autorizado.',true
  const assin=JSON.stringify(form);if(tentativa.assin!==assin)tentativa={assin,chave:novaChave()};form.chaveSalvar=tentativa.chave;
  salvando=true;atualizarSujo();
  google.script.run.withSuccessHandler(r=>{salvando=false;tentativa={assin:'',chave:''};rascApagar();currentOrder=r.id;rev=r.revisao;lastSavedSignature=JSON.stringify(payload());cancelamento=null;aplicarEstado();document.getElementById('orderBadge').textContent=r.id+' · revisão '+r.revisao;notify('Solicitação '+r.id+' salva com sucesso (revisão '+r.revisao+'). '+(r.semPreco?r.semPreco+' itens pendentes de cotação.':'Valor total '+brl(r.total)+'.')+((r.catalogo||[]).length?' Preço atualizado no catálogo: '+r.catalogo.length+(r.catalogo.length===1?' item.':' itens.'):''));
- (r.catalogo||[]).forEach(c=>{const q=produtos.find(x=>x.sku===c.sku);if(q){q.preco=c.preco;q.semPreco=false;}}); /* [ZAYDA 3.2] a próxima abertura recebe o catálogo novo */google.script.run.withSuccessHandler(rows=>{recentes=rows;renderRecent();}).recentesPublicos();carregarEntrega(r.id);mostrarSucesso(r);}).withFailureHandler(e=>{salvando=false;err(e);}).savePedido(form);}
+ (r.catalogo||[]).forEach(c=>{const q=produtos.find(x=>x.sku===c.sku);if(q){q.preco=c.preco;q.semPreco=false;}}); /* [ZAYDA 3.2] a próxima abertura recebe o catálogo novo */google.script.run.withSuccessHandler(rows=>{recentes=rows;renderRecent();}).recentesPublicos();carregarEntrega(r.id);carregarIndice();mostrarSucesso(r);}).withFailureHandler(e=>{salvando=false;err(e);}).savePedido(form);}
 function novaChave(){try{if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();const a=new Uint8Array(16);crypto.getRandomValues(a);return Array.from(a,x=>x.toString(16).padStart(2,'0')).join('');}catch(e){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12);}}
 function resetForm(){abrindo='';PEDIDO_TELA='';PEND_ATUAL=null;entregaMexida=false;currentOrder='';rev=0;lastSavedSignature='';cart=[];destacarPreco=false;cancelamento=null;fechando=false;ultimaEntrega=null;entregasPed=[];['busca','categoria','buscaPedido','entregaData','entregaObs','recebidoPor','entreguePor'].forEach(id=>document.getElementById(id).value='');buscarPedido();['atendente','entregador','endereco','casa','referencia','observacoes'].forEach(id=>document.getElementById(id).value='');document.getElementById('etapaObra').value='';ETAPA_MEXIDA=false;atualizarObra();document.getElementById('orderBadge').textContent='Novo pedido';document.getElementById('saveBtn').textContent='Salvar solicitação';renderCart();itensPedido=[];renderEntrega();rascApagar();notify('Novo formulário iniciado.');}
-function openById(id){const code=id||prompt('Digite o código da solicitação (ZAYDA-...)');if(!code)return;confirmarSaida(()=>abrirPedido(code));}
+function openById(id){if(id){confirmarSaida(()=>abrirPedido(id));return;} // [ZAYDA 3.3] sem prompt(): o código é digitado na própria tela
+ pedirConfirmacao('Abrir pedido pelo código','Abrir pedido',codigo=>{const k=String(codigo||'').trim().toUpperCase();if(k)confirmarSaida(()=>abrirPedido(k));},{motivo:'Código da solicitação (ZAYDA-...)',minimo:6,erroMin:'Informe o código do pedido (ex.: ZAYDA-20261109-F2591862).',linha:true});}
 /* [ZAYDA 1.8] Índice dos pedidos em memória: o pedido abre na hora, sem esperar o servidor.
    A versão (getVersaoPedidos) diz quando recarregar. localEm guarda quando um pedido foi atualizado aqui,
    para um índice pedido antes disso não trazer de volta dados velhos. */
 let INDICE=null,INDICE_VER=null,indiceBusy=false,versaoBusy=false,abrindo='',PEDIDO_TELA='',PEND_ATUAL=null,entregaMexida=false;const localEm={};
 const copia=o=>JSON.parse(JSON.stringify(o));
-function guardarNoIndice(p){if(!INDICE||!p||!p.id)return;INDICE[p.id]=copia(p);localEm[p.id]=performance.now();}
-function carregarIndice(){if(indiceBusy)return;indiceBusy=true;const t0=performance.now();
- google.script.run.withSuccessHandler(txt=>{indiceBusy=false;const d=JSON.parse(txt),novo={};d.pedidos.forEach(p=>{novo[p.id]=p;});
+function guardarNoIndice(p){if(!INDICE||!p||!p.id)return;INDICE[p.id]=copia(p);localEm[p.id]=performance.now();if(typeof pedRender==='function')pedRender();if(typeof atualizarAEntregar==='function')atualizarAEntregar();} // [ZAYDA 3.3] lista e selo na hora
+/* [ZAYDA 3.3] Lista, contadores e selo do menu saem do MESMO índice (servidor). Recarrega ao abrir Pedidos, depois de salvar,
+   entregar, cancelar ou encerrar, ao voltar para a aba depois de 1 minuto e no botão Atualizar. Pedido em andamento: pede de novo no fim. */
+let INDICE_EM=0,indiceDeNovo=false,INDICE_ERRO=false;
+const horaTxt=t=>{const d=new Date(t);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');};
+function horaPedidos(){const el=document.getElementById('pedAtuTxt');if(!el)return;el.textContent=indiceBusy?'Atualizando…':INDICE_ERRO?'Não foi possível atualizar. Tente de novo.':INDICE_EM?'Atualizado às '+horaTxt(INDICE_EM):'';
+ const b=document.getElementById('pedAtu');if(b)b.disabled=indiceBusy;}
+function carregarIndice(){if(indiceBusy){indiceDeNovo=true;return;}indiceBusy=true;INDICE_ERRO=false;horaPedidos();const t0=performance.now();
+ google.script.run.withSuccessHandler(txt=>{indiceBusy=false;INDICE_EM=Date.now();const d=JSON.parse(txt),novo={};d.pedidos.forEach(p=>{novo[p.id]=p;});
   if(INDICE)Object.keys(localEm).forEach(id=>{if(localEm[id]>t0&&INDICE[id])novo[id]=INDICE[id];});
   INDICE=novo;INDICE_VER=d.versao;if(typeof pedRender==='function')pedRender();if(typeof atualizarAEntregar==='function')atualizarAEntregar(); // [ZAYDA 2.8] tela Pedidos e contador do menu
   if(document.getElementById('buscaPedido').value.trim().length>=2)buscarPedido();
-  if(currentOrder&&INDICE[currentOrder]&&!(localEm[currentOrder]>t0))atualizarPedidoAberto(INDICE[currentOrder]);})
- .withFailureHandler(()=>{indiceBusy=false;}).getIndicePedidos();} // sem índice, abrir usa getPedido
+  if(currentOrder&&INDICE[currentOrder]&&!(localEm[currentOrder]>t0))atualizarPedidoAberto(INDICE[currentOrder]);
+  horaPedidos();if(indiceDeNovo){indiceDeNovo=false;carregarIndice();}})
+ .withFailureHandler(()=>{indiceBusy=false;INDICE_ERRO=true;horaPedidos();if(indiceDeNovo){indiceDeNovo=false;carregarIndice();}}).getIndicePedidos();} // sem índice, abrir usa getPedido
 function verificarVersao(){if(versaoBusy||!user)return;if(!INDICE){carregarIndice();return;}versaoBusy=true;
  google.script.run.withSuccessHandler(v=>{versaoBusy=false;if(v!==INDICE_VER)carregarIndice();})
  .withFailureHandler(()=>{versaoBusy=false;}).getVersaoPedidos();}
@@ -917,7 +933,7 @@ function atualizarPedidoAberto(novo){const t=JSON.stringify(novo);if(!currentOrd
 document.addEventListener('focusout',()=>setTimeout(()=>{if(!PEND_ATUAL||document.querySelector('.wrap input:focus,.wrap select:focus,.wrap textarea:focus'))return;const p=PEND_ATUAL;PEND_ATUAL=null;if(p.id===currentOrder)atualizarPedidoAberto(p);},0));
 document.getElementById('entregaPanel').addEventListener('input',()=>{entregaMexida=true;});
 document.getElementById('entregaPanel').addEventListener('change',()=>{entregaMexida=true;});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')verificarVersao();});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible'||!user)return;if(Date.now()-INDICE_EM>60000)carregarIndice();else verificarVersao();}); // [ZAYDA 3.3] mais de 1 minuto fora: recarrega
 /* [ZAYDA 2.2] Presença: o painel sabe quem está com o formulário aberto. Ao abrir, a cada 60 s com a página visível e ao voltar a ficar visível; em segundo plano não chama. Erros são ignorados. */
 let buscaDeb=0;document.getElementById('busca').addEventListener('input',()=>{clearTimeout(buscaDeb);buscaDeb=setTimeout(novaBusca,120);});
 document.getElementById('categoria').addEventListener('change',()=>{clearTimeout(buscaDeb);novaBusca();}); // [ZAYDA 3.0] trocar a categoria redesenha a lista e volta ao topo // [ZAYDA 2.7] 120 ms
@@ -1102,11 +1118,17 @@ function confirmarEntrega(){
  const recebidoPor=document.getElementById('recebidoPor').value.trim();if(!recebidoPor){notify('Informe o nome de quem recebeu o material.',true);return;}
  const entreguePor=document.getElementById('entreguePor').value.trim();if(!entreguePor){notify('Informe o nome de quem entregou o material.',true);return;}
  const assinatura=''; // [ZAYDA 1.4] sem assinatura na tela
- if(!confirm('Confirmar a entrega de '+nItens(itens.length)+' do pedido '+currentOrder+' em '+data.split('-').reverse().join('/')+'?'))return;
+ if(entregando)return;
+ // [ZAYDA 3.3] confirmação na própria tela (o confirm() do navegador pode ser bloqueado e a entrega não acontecia, sem aviso)
+ const lista='<ul class="conf-itens">'+itens.map(x=>{const it=itensPedido.find(i=>i.sku===x.sku)||{};return '<li>'+esc(fmtQ(x.quantidade)+' '+(it.unidade||'')+' — '+(it.nome||x.sku))+'</li>';}).join('')+'</ul>';
+ pedirConfirmacao('Confirmar a entrega de '+nItens(itens.length)+' do pedido '+currentOrder+' em '+data.split('-').reverse().join('/')+'?','Confirmar entrega',()=>enviarEntrega(itens,data,recebidoPor,entreguePor,assinatura),{lista});}
+let entregando=false;
+function enviarEntrega(itens,data,recebidoPor,entreguePor,assinatura){if(entregando)return;entregando=true;
  const btn=document.getElementById('entregaBtn');btn.disabled=true;btn.textContent='Registrando...';
- google.script.run.withSuccessHandler(r=>{btn.textContent='Marcar como entregue';itensPedido.forEach(it=>{it.entregue=r.entregue[it.sku]||0;});document.getElementById('entregaObs').value='';document.getElementById('recebidoPor').value='';document.getElementById('entreguePor').value=document.getElementById('entregador').value;limparAssinatura();renderEntrega();
-  entregaMexida=false;notify('Entrega registrada ('+nItens(r.registrados)+'). '+(r.pendentes?nItens(r.pendentes)+' ainda com saldo a entregar.':'Pedido totalmente entregue.'));carregarEntrega(currentOrder);google.script.run.withSuccessHandler(rows=>{recentes=rows;renderRecent();}).recentesPublicos();})
- .withFailureHandler(e=>{btn.disabled=false;btn.textContent='Marcar como entregue';err(e);})
+ google.script.run.withSuccessHandler(r=>{entregando=false;btn.textContent='Marcar como entregue';itensPedido.forEach(it=>{it.entregue=r.entregue[it.sku]||0;});document.getElementById('entregaObs').value='';document.getElementById('recebidoPor').value='';document.getElementById('entreguePor').value=document.getElementById('entregador').value;limparAssinatura();renderEntrega();
+  entregaMexida=false;notify('Entrega registrada ('+nItens(r.registrados)+'). '+(r.pendentes?nItens(r.pendentes)+' ainda com saldo a entregar.':'Pedido totalmente entregue.'));carregarEntrega(currentOrder);carregarIndice();google.script.run.withSuccessHandler(rows=>{recentes=rows;renderRecent();}).recentesPublicos();})
+ .withFailureHandler(e=>{entregando=false;btn.disabled=false;btn.textContent='Marcar como entregue';const m=String(e&&e.message||'');
+  notify('Não foi possível registrar a entrega. '+(m&&m.length<200&&!/exception|error|typeerror|script|undefined/i.test(m)?m:'Tente de novo.'),true);atualizarSujo();}) // o que foi preenchido fica
  .concluirEntrega({id:currentOrder,revisao:rev,data:data,observacoes:document.getElementById('entregaObs').value,recebidoPor:recebidoPor,entreguePor:entreguePor,assinatura:assinatura,itens:itens});}
 
 boot();renderCart();
@@ -1406,9 +1428,17 @@ T$('tfSalvar').onclick=()=>{const b=T$('tfSalvar'),er=T$('tfErro'),nome=T$('tfNo
 
 /* ---------- formulário: novo / editar ---------- */
 const terTotal=()=>terLerCent(T$('terValor').value)||0;
-function terParcNova(desc,cent,venc){return {descricao:desc||'',valor:cent==null?null:cent,venc:venc||'',vencManual:false,pago:false,dataPag:'',forma:'',comp:null};}
+function terParcNova(desc,cent,venc){return {descricao:desc||'',valor:cent==null?null:cent,venc:venc||'',vencManual:false,valorManual:false,pago:false,dataPag:'',forma:'',comp:null};}
+/* [ZAYDA 3.3] Total mudou e nenhuma parcela teve o valor digitado à mão: o que falta (total − parcelas já pagas) é redistribuído
+   entre as não pagas, na mesma proporção de antes (sinal/restante e parcelas iguais continuam assim). Com parcela editada à mão: mantém e mostra a diferença. */
+function terRedistribuir(){const tot=terTotal();if(!tot||terParc.some(p=>p.valorManual))return false;
+ const pagas=terParc.filter(p=>p.pago),livres=terParc.filter(p=>!p.pago);if(!livres.length)return false;
+ const resto=tot-pagas.reduce((s,p)=>s+(p.valor||0),0);if(resto<=0)return false;
+ const base=livres.reduce((s,p)=>s+(p.valor||0),0);let usado=0;
+ livres.forEach((p,i)=>{if(i===livres.length-1){p.valor=resto-usado;return;}const v=base>0?Math.round((p.valor||0)/base*resto):Math.floor(resto/livres.length);p.valor=v;usado+=v;});
+ return true;}
 function terLimparForm(){terEdit=null;terObraSel=null;terFornSel=null;terAnexo=null;terForma='UNICO';terTent={assin:'',chave:''};
- ['terObra','terForn','terTipo','terDesc','terQtd','terUn','terValor','terNota','terObs','terArq','terEtapa'].forEach(id=>T$(id).value='');T$('terData').value=terHoje();
+ ['terObra','terForn','terTipo','terDesc','terQtd','terUn','terValor','terNota','terObs','terArq','terEtapa'].forEach(id=>T$(id).value='');T$('terDescCont').textContent='0/300'; // [ZAYDA 3.3] contador zeradoT$('terData').value=terHoje();
  T$('terFornNovo').hidden=true;T$('terSinalBox').hidden=true;T$('terDividirBox').hidden=true;T$('terErro').hidden=true;terMostrarArq(T$('terArqInfo'),null);
  document.querySelector('input[name=terForma][value=UNICO]').checked=true;terParc=[terParcNova('Pagamento único',null,terHoje())];terSelInfo();}
 function terNovo(){if(!TERD)return;terLimparForm();T$('terFormTit').textContent='Novo lançamento';terParcRender();terFormIni=terAssin();terMostrar('form');window.scrollTo(0,0);T$('terObra').focus({preventScroll:true});}
@@ -1416,7 +1446,7 @@ function terEditar(id){const l=TERD.lancamentos.find(x=>x.id===id);if(!l||!terPo
  T$('terFormTit').textContent='Editar '+l.id+(l.conferencia==='REPROVADO'?' (reprovado: ao salvar, volta para a conferência)':'');
  terObraSel=terObra(l.obra)||{id:l.obra,endereco:'',cliente:'',status:''};terFornSel=TERD.fornecedores.find(f=>f.id===l.fornecedorId)||{id:l.fornecedorId,nome:l.fornecedor,tipo:'',doc:'',telefone:''};
  T$('terObra').value=terObraSel.id+' · '+terObraSel.endereco;T$('terForn').value=terFornSel.nome;terSelInfo();
- T$('terTipo').value=l.tipo;T$('terDesc').value=l.descricao;T$('terQtd').value=l.quantidade!=null&&!isNaN(l.quantidade)?String(l.quantidade).replace('.',','):'';T$('terUn').value=l.unidade||'';etapaPor(T$('terEtapa'),l.etapa);
+ T$('terTipo').value=l.tipo;T$('terDesc').value=l.descricao;T$('terDescCont').textContent=String(l.descricao||'').length+'/300';T$('terQtd').value=l.quantidade!=null&&!isNaN(l.quantidade)?String(l.quantidade).replace('.',','):'';T$('terUn').value=l.unidade||'';etapaPor(T$('terEtapa'),l.etapa);
  T$('terValor').value=terBrl(terCent(l.valor));T$('terData').value=l.dataRef||terHoje();T$('terNota').value=l.nota||'';T$('terObs').value=l.obs||'';
  terAnexo=l.anexo?{url:l.anexo,nome:'Anexo atual'}:null;terMostrarArq(T$('terArqInfo'),terAnexo,()=>{terAnexo=null;terSoma();});
  terForma=l.forma==='PARCELADO'?'PARCELADO':'UNICO';document.querySelector(`input[name=terForma][value=${terForma}]`).checked=true;
@@ -1447,7 +1477,7 @@ function terParcRender(){const unico=terForma==='UNICO',tot=terTotal(),hoje=terH
  T$('terParcelas').querySelectorAll('.ter-parc').forEach(box=>{const i=+box.dataset.pi,p=terParc[i],info=box.querySelector('[data-pinfo]');if(p.comp)terMostrarArq(info,p.comp,()=>{p.comp=null;});});
  terSoma();}
 T$('terParcelas').addEventListener('input',e=>{const box=e.target.closest('.ter-parc');if(!box)return;const p=terParc[+box.dataset.pi],k=e.target.dataset.pc;
- if(k==='descricao')p.descricao=e.target.value;else if(k==='valor')p.valor=terMascara(e.target);else if(k==='venc'){p.venc=e.target.value;p.vencManual=true;}else if(k==='dataPag')p.dataPag=e.target.value;terSoma();});
+ if(k==='descricao')p.descricao=e.target.value;else if(k==='valor'){p.valor=terMascara(e.target);p.valorManual=true;}else if(k==='venc'){p.venc=e.target.value;p.vencManual=true;}else if(k==='dataPag')p.dataPag=e.target.value;terSoma();});
 T$('terParcelas').addEventListener('change',e=>{const box=e.target.closest('.ter-parc');if(!box)return;const p=terParc[+box.dataset.pi],k=e.target.dataset.pc;
  if(k==='pago'){p.pago=e.target.checked;if(p.pago&&!p.dataPag)p.dataPag=terHoje();box.querySelector('.pagos').hidden=!p.pago;const d=box.querySelector('[data-pc=dataPag]');if(d&&!d.value)d.value=p.dataPag;}
  else if(k==='forma')p.forma=e.target.value;else if(k==='venc'){p.venc=e.target.value;p.vencManual=true;}else if(k==='dataPag')p.dataPag=e.target.value;
@@ -1458,7 +1488,7 @@ function terSoma(){const tot=terTotal(),soma=terParc.reduce((s,p)=>s+(p.valor||0
 document.querySelectorAll('input[name=terForma]').forEach(r=>r.addEventListener('change',()=>{if(!r.checked)return;const era=terForma;terForma=r.value;
  if(era==='UNICO'&&terForma==='PARCELADO'&&terParc.length===1&&terParc[0].descricao==='Pagamento único')terParc[0].descricao='Parcela 1';
  terParcRender();}));
-T$('terValor').addEventListener('input',()=>{terMascara(T$('terValor'));if(terForma==='UNICO')terParcRender();else terSoma();});
+T$('terValor').addEventListener('input',()=>{terMascara(T$('terValor'));if(terForma==='UNICO'||terRedistribuir())terParcRender();else terSoma();});
 T$('terData').addEventListener('change',()=>{if(terForma==='UNICO'&&!terParc[0].vencManual)terParcRender();});
 T$('terDesc').addEventListener('input',()=>{T$('terDescCont').textContent=T$('terDesc').value.length+'/300';});
 T$('terArq').addEventListener('change',()=>terEnviarCampo(T$('terArq'),T$('terArqInfo'),r=>{terAnexo=r;},()=>{terAnexo=null;}));
@@ -1521,6 +1551,7 @@ function aplicarTela(t,ativo){if(!TELAS[t])t='novo';if(t==='fornecedores'&&!TER_
  TELA=t;TELA_ATIVO=ativo||t;
  T$('telaNovo').hidden=t!=='novo';T$('telaPedidos').hidden=t!=='pedidos';T$('terView').hidden=t!=='fornecedores';
  if(t==='fornecedores')terAbrir();else if(terAberto){terAberto=false;terMostrar('lista');}
+ if(t==='pedidos'&&user)carregarIndice(); // [ZAYDA 3.3] dados do servidor ao abrir a tela
  document.querySelectorAll('#side .nav a[data-tela]').forEach(a=>a.setAttribute('aria-current',a.dataset.tela===TELA_ATIVO?'page':'false'));
  atualizarTopo();atualizarAtalho();requestAnimationFrame(navVisivel);}
 function irTela(t,op){op=op||{};
@@ -1552,7 +1583,7 @@ T$('relAtalho').onclick=()=>{const r=T$('relacaoCard');r.scrollIntoView({behavio
 try{new IntersectionObserver(es=>{es.forEach(e=>{RELACAO_VISIVEL=e.isIntersecting;});atualizarAtalho();},{threshold:.15}).observe(T$('relacaoCard'));}catch(e){}
 /* Contadores da barra: pedidos a entregar/parciais (mesmo selo da lista) e lançamentos aguardando conferência */
 function atualizarAEntregar(){const L=typeof pedLinhas==='function'?pedLinhas():null; /* [ZAYDA 2.8] com o índice carregado, a mesma conta da tela Pedidos */
- const n=L?L.filter(l=>l.sit==='A entregar'||l.sit==='Parcial').length:(recentes||[]).filter(o=>o.situacao==='A entregar'||o.situacao==='Parcial').length,el=T$('navAEntregar');el.hidden=!n;el.textContent=n+' a entregar';}
+ const n=L?L.filter(l=>l.sit==='A entregar'||l.sit==='Parcial').length:0,el=T$('navAEntregar');el.hidden=!n;el.textContent=n+' a entregar';} // [ZAYDA 3.3] só do índice (o mesmo da lista); sem índice ainda, nada
 function atualizarTerAg(){const n=TERD?TERD.lancamentos.filter(l=>l.conferencia==='AGUARDANDO').length:0,el=T$('navTerAg');el.hidden=!n;el.textContent=n;el.title=n+' aguardando conferência';}
 /* Cartão do usuário: nome e empresa (o formulário não tem "sair": a conta é a do Google). */
 function atualizarConta(){if(!user)return;const nome=user.nome||user.email||'',emp=user.empresaUsuario||'';T$('scNome').textContent=nome;T$('scEmp').textContent=emp;T$('scEmp').hidden=!emp;
@@ -1647,6 +1678,7 @@ document.getElementById('pedidosBox').addEventListener('click',e=>{const f=e.tar
  const r=e.target.closest('[data-pedid]');if(r)openById(r.dataset.pedid);});
 document.getElementById('pedidosBox').addEventListener('keydown',e=>{const r=e.target.closest&&e.target.closest('tr[data-pedid]');if(r&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openById(r.dataset.pedid);}});
 document.getElementById('pedMais').onclick=()=>{PED_N+=20;pedRender();};
+document.getElementById('pedAtu').onclick=()=>carregarIndice(); // [ZAYDA 3.3]
 document.getElementById('buscaPedido').addEventListener('input',()=>{clearTimeout(pedDeb);pedDeb=setTimeout(()=>{PED_N=20;pedRender();},120);});
 function skeleton(n){return '<div class="skel-lista" aria-busy="true" aria-label="Carregando">'+Array.from({length:n},()=>'<div class="skel-lin"><i></i><i></i><i></i></div>').join('')+'</div>';}
 /* --- Pedido salvo como ficha e entrega concluída --- */

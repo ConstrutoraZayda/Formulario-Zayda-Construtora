@@ -709,7 +709,7 @@ function getIndicePedidos() {
   auth_();
   const versao = versaoPedidos_(); // lida antes dos dados: se algo for gravado durante a leitura, a próxima conferência acusa
   const atual = {};
-  blocoAba_(s_('pedidos'), 1, 15).forEach(r => {
+  blocoAba_(s_('pedidos'), 1, 16).forEach(r => { // [ZAYDA 3.3] até a coluna P (ETAPA): o índice também traz a etapa
     const id = String(r[0] || '');
     if (id.indexOf(PREFIXO_PEDIDO) !== 0) return;
     if (!atual[id] || Number(r[1] || 0) > atual[id].revisao) atual[id] = registroPedido_(r);
