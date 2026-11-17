@@ -958,7 +958,10 @@ function terceirosDados() {
   const lancs = terLinhas_(TER.abaLanc, TER.cabLanc).filter(r => String(r[0] || '').indexOf('TER-') === 0).map(r => {
     const l = terLancObj_(r); l.parcelas = (parc[l.id] || []).sort((a, b) => a.numero - b.numero); return l; })
     .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm) || b.id.localeCompare(a.id));
-  return JSON.stringify({eu: {email: u.email, nome: u.nome, zayda: u.zayda, fin: u.fin}, hoje: terHoje_(), obras: terObras_(),
+  // Nomes de quem lançou e conferiu (aba USUARIOS), para a impressão mostrar o nome e não o e-mail. Só desses e-mails, não o cadastro inteiro.
+  const cad = usuarios_().porEmail, nomes = {};
+  lancs.forEach(l => [l.criadoPor, l.conferidoPor].forEach(e => { const k = String(e || '').trim().toLowerCase(); if (cad[k] && cad[k].nome) nomes[k] = cad[k].nome; }));
+  return JSON.stringify({eu: {email: u.email, nome: u.nome, zayda: u.zayda, fin: u.fin}, hoje: terHoje_(), nomes, obras: terObras_(),
     fornecedores: terFornecedores_().filter(f => f.ativo), lancamentos: lancs, etapas: ETAPAS_OBRA.slice(), tipos: TER.tipos, unidades: TER.unidades, formas: TER.formas});
 }
 
