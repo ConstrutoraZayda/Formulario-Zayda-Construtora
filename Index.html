@@ -999,13 +999,15 @@ const horaTxt=t=>{const d=new Date(t);return String(d.getHours()).padStart(2,'0'
 function horaPedidos(){const el=document.getElementById('pedAtuTxt');if(!el)return;el.textContent=indiceBusy?'Atualizando…':INDICE_ERRO?'Não foi possível atualizar. Tente de novo.':INDICE_EM?'Atualizado às '+horaTxt(INDICE_EM):'';
  const b=document.getElementById('pedAtu');if(b)b.disabled=indiceBusy;}
 function carregarIndice(){if(indiceBusy){indiceDeNovo=true;return;}indiceBusy=true;INDICE_ERRO=false;horaPedidos();const t0=performance.now();
- google.script.run.withSuccessHandler(txt=>{indiceBusy=false;INDICE_EM=Date.now();const d=JSON.parse(txt),novo={};d.pedidos.forEach(p=>{novo[p.id]=p;});
+ google.script.run.withSuccessHandler(txt=>{indiceBusy=false;INDICE_EM=Date.now();let d;try{d=JSON.parse(txt);if(!d||!Array.isArray(d.pedidos))throw new Error('resposta sem a lista de pedidos');}
+  catch(e){console.error('Pedidos: resposta do getIndicePedidos não lida',e);INDICE_ERRO=true;horaPedidos();if(typeof pedRender==='function')pedRender();return;}const novo={};d.pedidos.forEach(p=>{novo[p.id]=p;});
   if(INDICE)Object.keys(localEm).forEach(id=>{if(localEm[id]>t0&&INDICE[id])novo[id]=INDICE[id];});
   INDICE=novo;INDICE_VER=d.versao;if(typeof pedRender==='function')pedRender();if(typeof atualizarAEntregar==='function')atualizarAEntregar(); // [ZAYDA 2.8] tela Pedidos e contador do menu
   if(document.getElementById('buscaPedido').value.trim().length>=2)buscarPedido();
   if(currentOrder&&INDICE[currentOrder]&&!(localEm[currentOrder]>t0))atualizarPedidoAberto(INDICE[currentOrder]);
   horaPedidos();if(indiceDeNovo){indiceDeNovo=false;carregarIndice();}})
- .withFailureHandler(()=>{indiceBusy=false;INDICE_ERRO=true;horaPedidos();if(indiceDeNovo){indiceDeNovo=false;carregarIndice();}}).getIndicePedidos();} // sem índice, abrir usa getPedido
+ .withFailureHandler(e=>{console.error('Pedidos: getIndicePedidos falhou',e);indiceBusy=false;INDICE_ERRO=true;horaPedidos();if(!INDICE&&typeof pedRender==='function')pedRender(); // sem lista: mostra "Tentar de novo" em vez do esqueleto
+  if(indiceDeNovo){indiceDeNovo=false;carregarIndice();}}).getIndicePedidos();} // sem índice, abrir usa getPedido
 function verificarVersao(){if(versaoBusy||!user)return;if(!INDICE){carregarIndice();return;}versaoBusy=true;
  google.script.run.withSuccessHandler(v=>{versaoBusy=false;if(v!==INDICE_VER)carregarIndice();})
  .withFailureHandler(()=>{versaoBusy=false;}).getVersaoPedidos();}
@@ -1749,7 +1751,7 @@ function atualizarAtalho(){const b=T$('relAtalho'),n=cart.length,com=TELA==='nov
 T$('relAtalho').onclick=()=>{const r=T$('relacaoCard');r.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});};
 try{new IntersectionObserver(es=>{es.forEach(e=>{RELACAO_VISIVEL=e.isIntersecting;});atualizarAtalho();},{threshold:.15}).observe(T$('relacaoCard'));}catch(e){}
 /* Contadores da barra: pedidos a entregar/parciais (mesmo selo da lista) e lançamentos aguardando conferência */
-function atualizarAEntregar(){const L=typeof pedLinhas==='function'?pedLinhas():null; /* [ZAYDA 2.8] com o índice carregado, a mesma conta da tela Pedidos */
+function atualizarAEntregar(){let L=null;try{L=typeof pedLinhas==='function'?pedLinhas():null;}catch(e){console.error('Pedidos: contador do menu',e);} /* [ZAYDA 2.8] com o índice carregado, a mesma conta da tela Pedidos */
  const n=L?L.filter(l=>l.sit==='A entregar'||l.sit==='Parcial').length:0,el=T$('navAEntregar');el.hidden=!n;el.textContent=n+' a entregar';} // [ZAYDA 3.3] só do índice (o mesmo da lista); sem índice ainda, nada
 function atualizarTerAg(){const n=TERD?TERD.lancamentos.filter(l=>l.conferencia==='AGUARDANDO').length:0,el=T$('navTerAg');el.hidden=!n;el.textContent=n;el.title=n+' aguardando conferência';}
 /* Cartão do usuário: nome e empresa (o formulário não tem "sair": a conta é a do Google). */
@@ -1826,8 +1828,13 @@ function pedLinhas(){if(!INDICE)return null;const mes=hojeLocal().slice(0,7);
 const PED_FILTROS={'':()=>true,'A entregar':l=>l.sit==='A entregar','Parcial':l=>l.sit==='Parcial','Entregue':l=>l.sit==='Entregue','Fechado':l=>l.sit==='Cancelado'||l.sit==='Encerrado','mes':l=>l.mesEnt};
 const PED_COMP={data:(a,b)=>a.criado.localeCompare(b.criado),pedido:(a,b)=>a.cod.localeCompare(b.cod),obra:(a,b)=>(a.ob||a.rua).localeCompare(b.ob||b.rua,'pt-BR',{numeric:true}),atendente:(a,b)=>a.atendente.localeCompare(b.atendente,'pt-BR'),
  entregador:(a,b)=>a.entregador.localeCompare(b.entregador,'pt-BR'),itens:(a,b)=>a.n-b.n,valor:(a,b)=>a.total-b.total,sit:(a,b)=>a.sit.localeCompare(b.sit,'pt-BR')};
-function pedRender(){const box=document.getElementById('pedLista');if(!box)return;const L=pedLinhas();
- if(!L){document.getElementById('pedResumo').innerHTML='';document.getElementById('pedChips').innerHTML='';box.innerHTML=skeleton(6);document.getElementById('pedMais').hidden=true;return;}
+/* Montagem protegida: se der erro (ou o servidor não responder), aparece "Tentar de novo" e o erro vai para o console; nunca o esqueleto para sempre. */
+function pedErro(e){if(e)console.error('Pedidos: não foi possível montar a lista',e);const box=document.getElementById('pedLista');if(!box)return;
+ box.innerHTML='<div class="empty res-erro"><span>Não foi possível montar a lista.</span><button type="button" class="secondary" id="pedDeNovo">Tentar de novo</button></div>';
+ document.getElementById('pedMais').hidden=true;const b=document.getElementById('pedDeNovo');b.onclick=()=>{b.disabled=true;b.textContent='Carregando...';carregarIndice();};}
+function pedRender(){try{pedMontar();}catch(e){pedErro(e);}}
+function pedMontar(){const box=document.getElementById('pedLista');if(!box)return;const L=pedLinhas();
+ if(!L){document.getElementById('pedResumo').innerHTML='';document.getElementById('pedChips').innerHTML='';document.getElementById('pedMais').hidden=true;if(INDICE_ERRO&&!indiceBusy)pedErro();else box.innerHTML=skeleton(6);return;}
  const q=norm(document.getElementById('buscaPedido').value).trim().split(/\s+/).filter(Boolean),base=L.filter(l=>q.every(w=>l.busca.indexOf(w)>=0));
  const cont=k=>base.filter(PED_FILTROS[k]).length;
  document.getElementById('pedResumo').innerHTML=[['A entregar','A entregar'],['Parcial','Parciais'],['mes','Entregues no mês']].map(([k,t])=>`<button type="button" class="ped-num${PED_F===k?' on':''}" data-pedf="${k}" aria-pressed="${PED_F===k}"><b>${cont(k)}</b><span>${t}</span></button>`).join('');
