@@ -121,28 +121,82 @@ header small{color:#5b7260!important;}
 .print-signature .data{display:block;margin-top:1.8mm;color:#3A4A40;}
 .print-bottom{border-top:1px solid #B9CCBF;padding-top:2mm;margin-top:5mm;display:flex;justify-content:space-between;gap:4mm;color:#3A4A40;font-size:8.5pt;}
 .print-bottom strong{color:#0F1A14;}
-/* [ZAYDA 3.6] Impressão do lançamento de outro fornecedor: blocos, valor em destaque, totais e registro em 3 colunas */
-.ter-folha .print-section-name{margin:2.6mm 0 1.2mm;break-after:avoid;page-break-after:avoid;}
-.ter-folha .print-head{padding-bottom:3mm;}
-.ter-folha .print-info{padding:2.2mm 3.5mm;gap:1.6mm 6mm;}
-.ter-folha .print-table td{padding:1.2mm 2mm;}
-.ter-folha .print-notes{padding:1.6mm 3mm;}
-.ter-folha .print-bottom{margin-top:4mm;}
-.print-valores,.print-tot2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4mm;break-inside:avoid;page-break-inside:avoid;}
-.print-valores>div{min-width:0;border:1px solid #B9CCBF;border-radius:2mm;padding:2mm 3.5mm;}
-.print-valores span,.print-tot2 span{display:block;font-size:8pt;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#3A4A40;}
-.print-valores b{display:block;margin-top:.8mm;font-size:13pt;color:#0F1A14;}
-.print-valores .pv-total{border:2px solid #00632B;background:#F1F8F3;}
-.print-valores .pv-total strong{display:block;margin-top:.3mm;font-size:18pt;line-height:1.15;color:#0F1A14;}
-.print-tot2{margin-top:2.5mm;}
-.print-tot2>div{display:flex;justify-content:space-between;align-items:baseline;gap:3mm;border:1px solid #B9CCBF;border-radius:2mm;padding:2mm 3.5mm;}
-.print-tot2 b{font-size:12pt;color:#0F1A14;white-space:nowrap;}
-.print-reg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4mm;break-inside:avoid;page-break-inside:avoid;}
-.print-reg-c{min-width:0;border:1px solid #B9CCBF;border-radius:2mm;padding:2mm 3mm;}
-.print-reg-c .key{font-size:8pt;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#3A4A40;}
-.print-reg-c .val{margin-top:.6mm;font-size:10.8pt;font-weight:800;color:#0F1A14;overflow-wrap:anywhere;}
-.print-reg-c small{display:block;margin-top:.5mm;font-size:8.5pt;color:#3A4A40;}
-.print-ass{margin-top:6mm;font-size:10.5pt;font-weight:700;color:#0F1A14;break-inside:avoid;page-break-inside:avoid;}
+/* [ZAYDA 3.8] Impressão do lançamento de outro fornecedor (modelo "cronograma completo"): faixa verde, painel de números, resumo, cronograma, registro e assinaturas */
+.tm-folha,.tm-folha *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;box-sizing:border-box;}
+.tm{font-family:Arial,Helvetica,sans-serif;font-size:10pt;line-height:1.35;color:#16231B;background:#fff;font-variant-numeric:tabular-nums;}
+.tm b,.tm strong{font-weight:700;}
+.tm-r{font-size:7.5pt;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#6B7A72;}
+.tm-band{position:relative;margin:0 15mm;padding:5mm 6mm 14mm;color:#16231B;background:#EEF6F0;border-top:1.6mm solid #1F8A43;border-radius:2.5mm 2.5mm 0 0;} /* dentro da área que a impressora imprime: 10 mm do topo e alinhada ao conteúdo */
+.tm-top{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-start;gap:8mm;}
+.tm-top img{width:52mm;height:auto;flex:none;}
+.tm-idb{min-width:0;text-align:right;}
+.tm-tipo{font-size:7.5pt;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:#2F6B45;}
+.tm-cod{margin:1.4mm 0 2.2mm;font-size:21pt;font-weight:800;letter-spacing:.3px;color:#16231B;overflow-wrap:anywhere;}
+.tm-selo{display:inline-flex;align-items:center;gap:2mm;padding:1.1mm 3.6mm;border-radius:99px;background:#FFF3D9;color:#7E4B00;font-size:8.5pt;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;}
+.tm-selo i{width:2.4mm;height:2.4mm;border-radius:50%;background:#E8A21A;}
+.tm-selo.ok{background:#E2F3E7;color:#0E5A2C;}.tm-selo.ok i{background:#1F8A43;}
+.tm-selo.bad{background:#FDE6E6;color:#9B1C1C;}.tm-selo.bad i{background:#D93636;}
+.tm-selo.canc{background:#ECEFEE;color:#404A45;}.tm-selo.canc i{background:#8A948F;}
+.tm-dados{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,auto);justify-content:start;gap:0 11mm;margin-top:4mm;}
+.tm-dados .tm-r{color:#3F6B50;}
+.tm-dados .v{margin-top:1mm;font-size:10.5pt;color:#16231B;}
+.tm-corpo{padding:0 15mm;}
+.tm-num{position:relative;z-index:2;display:grid;grid-template-columns:minmax(0,1.35fr) repeat(3,minmax(0,1fr));margin-top:-11mm;background:#fff;border:1px solid #CFE3D5;border-radius:4mm;box-shadow:0 .6mm 2mm rgba(0,0,0,.06);break-inside:avoid;page-break-inside:avoid;}
+.tm-c{min-width:0;padding:3.2mm 4mm;}
+.tm-c+.tm-c{border-left:1px solid #E4E9E6;}
+.tm-v{margin-top:1.2mm;font-size:13.5pt;font-weight:800;line-height:1.15;color:#16231B;white-space:nowrap;}
+.tm-v.tm-tot{font-size:20pt;color:#0D4424;}
+.tm-v.menor{font-size:12pt;white-space:normal;}
+.tm-v.verde{color:#1A7A3B;}.tm-v.verm{color:#B42318;}.tm-v.ambar{color:#9A5A00;}
+.tm-s{margin-top:1mm;font-size:8.5pt;color:#6B7A72;}
+.tm-barra{display:flex;height:2.6mm;margin-top:3mm;border-radius:2mm;overflow:hidden;background:#E8ECEA;}
+.tm-barra i{display:block;height:100%;}
+.tm-barra .pg{background:#1F8A43;}.tm-barra .at{background:#EFA12E;}.tm-barra .av{background:#E8ECEA;}
+.tm-sec{display:flex;align-items:center;gap:4mm;margin:3.6mm 0 1.8mm;font-size:8.5pt;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0E5A2C;break-after:avoid;page-break-after:avoid;}
+.tm-sec::after{content:"";flex:1;height:1px;background:#DDE3E0;}
+.tm-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4mm;break-inside:avoid;page-break-inside:avoid;}
+.tm-card{min-width:0;padding:2.8mm 4mm;border:1px solid #DDE3E0;border-radius:3mm;overflow-wrap:anywhere;}
+.tm-card b{display:block;font-size:10.5pt;line-height:1.3;}
+.tm-ch{display:flex;align-items:center;gap:2.5mm;margin-bottom:1.8mm;}
+.tm-ico{display:inline-flex;align-items:center;justify-content:center;width:6.5mm;height:6.5mm;border-radius:1.5mm;background:#E6F3EA;color:#17632F;flex:none;}
+.tm-ico svg{width:4.2mm;height:4.2mm;}
+.tm-cz{color:#6B7A72;}
+.tm-tl{position:relative;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));margin-top:1mm;break-inside:avoid;page-break-inside:avoid;}
+.tm-trilho{position:absolute;top:4.5mm;height:.7mm;background:#DDE3E0;}
+.tm-trilho i{display:block;height:100%;background:#1F8A43;}
+.tm-p{position:relative;min-width:0;padding:0 2mm;text-align:center;}
+.tm-p b{display:block;margin-top:1.4mm;font-size:9.5pt;overflow-wrap:anywhere;}
+.tm-p strong{display:block;font-size:12pt;}
+.tm-p small{display:block;font-size:8.5pt;color:#6B7A72;margin-bottom:.6mm;}
+.tm-p .tm-pl{white-space:normal;}
+.tm-bol{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;width:9mm;height:9mm;border-radius:50%;border:.7mm solid #C9D1CC;background:#fff;color:#5D6A63;font-size:11pt;font-weight:800;box-shadow:0 0 0 .9mm #fff;}
+.tm-bol svg{width:5mm;height:5mm;}
+.tm-bol.paga{background:#1F8A43;border-color:#1F8A43;color:#fff;box-shadow:0 0 0 .9mm #fff,0 0 0 1.4mm #1F8A43;}
+.tm-bol.hoje{background:#EFA12E;border-color:#EFA12E;color:#fff;box-shadow:0 0 0 .9mm #fff,0 0 0 1.4mm #EFA12E;}
+.tm-bol.venc{background:#C62828;border-color:#C62828;color:#fff;box-shadow:0 0 0 .9mm #fff,0 0 0 1.4mm #C62828;}
+.tm-pl{display:inline-block;padding:.5mm 2.4mm;border-radius:99px;font-size:7.8pt;font-weight:800;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap;}
+.tm-pl.paga{background:#E2F3E7;color:#0E5A2C;}.tm-pl.hoje{background:#FFF1D6;color:#7E4B00;}.tm-pl.venc{background:#FDE6E6;color:#9B1C1C;}.tm-pl.avencer{background:#ECEFEE;color:#4A5550;}
+.tm-mais{margin-top:1.5mm;text-align:right;font-size:8.5pt;color:#6B7A72;}
+.tm-tab{width:100%;margin-top:3mm;border-collapse:collapse;font-size:10pt;}
+.tm-tab th{padding:0 2mm 1.8mm;border-bottom:1.5px solid #16231B;text-align:left;font-size:7.5pt;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#6B7A72;}
+.tm-tab td{padding:1mm 2mm;border-bottom:1px solid #E4E9E6;vertical-align:middle;}
+.tm-tab tr{break-inside:avoid;page-break-inside:avoid;}
+.tm-tab .n{text-align:right;white-space:nowrap;}
+.tm-tab tr.t td{border-bottom:0;font-weight:700;}
+.tm-tab tr.t td:last-child{font-weight:600;color:#6B7A72;}
+.tm-obs{padding:2.6mm 4.5mm;border-left:1.2mm solid #1F8A43;border-radius:0 2mm 2mm 0;background:#F3F6F4;white-space:pre-wrap;overflow-wrap:anywhere;break-inside:avoid;page-break-inside:avoid;}
+.tm-reg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4mm;break-inside:avoid;page-break-inside:avoid;}
+.tm-rg{min-width:0;padding:2.6mm 4mm;border:1px solid #DDE3E0;border-radius:3mm;}
+.tm-rn{margin-top:.8mm;font-size:11pt;font-weight:800;overflow-wrap:anywhere;}
+.tm-rn.cinza{color:#9AA6A0;}
+.tm-ass{margin-top:4mm;padding:3mm 5mm 3.5mm;border:1px dashed #AEB8B3;border-radius:3mm;break-inside:avoid;page-break-inside:avoid;}
+.tm-ass-l{display:grid;grid-template-columns:auto minmax(0,1.6fr) auto minmax(0,.8fr) auto minmax(0,1.7fr);align-items:end;gap:0 2.5mm;margin-top:4.5mm;font-size:10pt;color:#5D6A63;}
+.tm-ass-l i{display:block;height:0;border-bottom:1px solid #16231B;margin-right:4mm;}
+.tm-ass-l i:last-child{margin-right:0;}
+@media print{
+  .tm-folha{page:termb;}
+  @page termb{size:A4;margin:10mm 0 8mm 0;}
+}
 @media print {
   html, body { background:#fff !important; color:#0F1A14 !important; margin:0 !important;
     -webkit-print-color-adjust:exact; print-color-adjust:exact; }
@@ -1073,48 +1127,84 @@ function printRelation() {
   window.print();
 }
 
-/* [ZAYDA 3.4] Impressão de um lançamento de Outros fornecedores: mesma folha A4 (#printSheet) e mesmo visual da impressão do pedido. */
+/* [ZAYDA 3.8] Impressão de um lançamento de Outros fornecedores (modelo "cronograma completo"): mesma folha A4 (#printSheet), sempre clara, 1 página sempre que possível.
+   Nenhum dado ou cálculo muda: só a apresentação. Situação sempre escrita (legível em preto e branco); cor só de apoio. */
 function terImprimir(id){ const l=TERD&&TERD.lancamentos.find(x=>x.id===id); if(!l) return;
-  const o=terObra(l.obra), f=(TERD.fornecedores||[]).find(x=>x.id===l.fornecedorId)||{}, hoje=terHoje(), ps=l.parcelas||[];
-  const field=(label,value,cls)=>`<div class="print-field${cls?' '+cls:''}"><div class="key">${esc(label)}</div><div class="val">${esc(value==null||value===''?'—':value)}</div></div>`;
-  const CONF={AGUARDANDO:['draft','AGUARDANDO CONFERÊNCIA'],CONFERIDO:['','CONFERIDO'],REPROVADO:['fechado','REPROVADO'],CANCELADO:['fechado','CANCELADO']}[l.conferencia]||['draft',l.conferencia];
+  const o=terObra(l.obra), f=(TERD.fornecedores||[]).find(x=>x.id===l.fornecedorId)||{}, hoje=terHoje(), ps=(l.parcelas||[]).slice().sort((a,b)=>(a.numero||0)-(b.numero||0));
+  const parcelado=l.forma==='PARCELADO'&&ps.length>=2, val=x=>Number(x.valor)||0, total=Number(l.valor)||0;
   const dias=(a,b)=>{const d=s=>Date.UTC(+s.slice(0,4),+s.slice(5,7)-1,+s.slice(8,10));return Math.round((d(b)-d(a))/864e5);};
-  const sit=x=>x.pago?'Paga em '+terDia(x.dataPagamento)+(x.forma?' · '+x.forma:''):x.vencimento&&x.vencimento<hoje?'Vencida há '+dias(x.vencimento,hoje)+(dias(x.vencimento,hoje)===1?' dia':' dias'):'Não paga';
-  const pago=ps.filter(x=>x.pago).reduce((s,x)=>s+(Number(x.valor)||0),0), aPagar=ps.filter(x=>!x.pago).reduce((s,x)=>s+(Number(x.valor)||0),0);
-  const linhas=ps.map(x=>`<tr><td>${x.numero}</td><td><div class="item-name">${esc(x.descricao||'Parcela '+x.numero)}</div></td><td class="num">${brl(Number(x.valor)||0)}</td><td>${terDia(x.vencimento)}</td><td>${esc(sit(x))}</td></tr>`).join('');
-  const agora=new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date());
+  const nDias=n=>n+(n===1?' dia':' dias'), nParc=n=>n+(n===1?' parcela':' parcelas'), dm=s=>s?s.slice(8,10)+'/'+s.slice(5,7):'';
+  const SELO={AGUARDANDO:['aguard','Aguardando conferência'],CONFERIDO:['ok','Conferido'],REPROVADO:['bad','Reprovado'],CANCELADO:['canc','Cancelado']}[l.conferencia]||['aguard',l.conferencia];
+  // Situação de cada parcela: paga, vence hoje, vencida ou a vencer.
+  const est=x=>x.pago?'paga':!x.vencimento?'avencer':x.vencimento===hoje?'hoje':x.vencimento<hoje?'venc':'avencer';
+  const pagas=ps.filter(x=>x.pago), abertas=ps.filter(x=>!x.pago), pago=pagas.reduce((s,x)=>s+val(x),0), aPagar=abertas.reduce((s,x)=>s+val(x),0), quitado=ps.length>0&&aPagar<0.005;
+  const pct=total?Math.round(pago/total*100):0;
+  const prox=abertas.filter(x=>x.vencimento).sort((a,b)=>a.vencimento.localeCompare(b.vencimento))[0];
+  const barra=ps.length?ps.map(x=>{const e=est(x);return `<i class="${e==='paga'?'pg':e==='avencer'?'av':'at'}" style="flex:${Math.max(val(x),0.01)}"></i>`;}).join(''):'<i class="av" style="flex:1"></i>';
   const qtd=l.quantidade!=null&&!isNaN(l.quantidade)?fmtQ(l.quantidade)+(l.unidade?' '+l.unidade:''):'';
+  // CNPJ/CPF e telefone formatados só quando têm o número certo de dígitos; senão, como estão.
+  const docTxt=s=>{const d=String(s||'').replace(/\D/g,'');return d.length===14?'CNPJ '+d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'):d.length===11?'CPF '+d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/,'$1.$2.$3-$4'):'CPF/CNPJ '+s;};
+  const telTxt=s=>{const d=String(s||'').replace(/\D/g,'');return d.length===11?d.replace(/^(\d{2})(\d{5})(\d{4})$/,'($1) $2-$3'):d.length===10?d.replace(/^(\d{2})(\d{4})(\d{4})$/,'($1) $2-$3'):s;};
+  const mesRef=l.dataRef?['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][+l.dataRef.slice(5,7)-1]+'/'+l.dataRef.slice(0,4):'';
+  const custo=l.conferencia==='CONFERIDO'?'Sim · '+mesRef:l.conferencia==='CANCELADO'?'Não · cancelado':'Após a conferência';
   // Nome do cadastro de usuários; sem nome, só a parte antes do @ (nunca o e-mail inteiro).
   const nome=e=>{const m=String(e||'').trim().toLowerCase();if(!m)return '';const n=TERD.nomes&&TERD.nomes[m];return n||m.split('@')[0];};
-  const reg=(rot,quem,quando)=>`<div class="print-reg-c"><div class="key">${esc(rot)}</div><div class="val">${esc(quem||'—').replace(/([._-])/g,'$1<wbr>')}</div><small>${esc(quando||'')}&nbsp;</small></div>`;
-  const rotConf=l.conferencia==='REPROVADO'?'Reprovado por':l.conferencia==='CANCELADO'?'Cancelado por':'Conferido por';
+  const quebra=t=>esc(t).replace(/([._-])/g,'$1<wbr>');
+  const agora=new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date()).replace(', ',' às ');
   const emissor=(user&&user.nome)||(TERD.eu&&TERD.eu.nome)||nome(user&&user.email||TERD.eu&&TERD.eu.email)||'—';
   const motivo=l.motivo&&(l.conferencia==='REPROVADO'||l.conferencia==='CANCELADO')?(l.conferencia==='REPROVADO'?'Motivo da reprovação: ':'Motivo do cancelamento: ')+l.motivo:'';
   const notas=[l.obs,motivo,l.anexo?'Nota anexada no sistema.':''].filter(Boolean);
-  const wrapper=`<div class="print-page ter-folha">
-    <div class="print-head">
-      <div class="print-brand"><img class="print-real-logo" src="${document.getElementById('brandLogo').src}" alt="Zayda Construtora" /></div>
-      <div class="print-doclabel"><span>LANÇAMENTO DE OUTRO FORNECEDOR</span><strong>${esc(l.id)}</strong><small>Data de referência ${terDia(l.dataRef)}</small>
-        <div class="print-chip${CONF[0]?' '+CONF[0]:''}">${esc(CONF[1])}</div></div>
+  const ICO={obra:'<path d="M3 21h18M5 21V8l7-4 7 4v13M9 21v-5h6v5"/>',forn:'<path d="M3 6h11v10H3zM14 9h4l3 3v4h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>',compra:'<path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/>'};
+  const ico=k=>`<span class="tm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICO[k]}</svg></span>`;
+  const OK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  const cel=(rot,v,sub,cl)=>`<div class="tm-c"><div class="tm-r">${rot}</div><div class="tm-v ${cl||''}">${v}</div>${sub?`<div class="tm-s">${sub}</div>`:''}</div>`;
+  const pl=(e,t)=>`<span class="tm-pl ${e}">${t}</span>`;
+  const selo=x=>{const e=est(x);return e==='paga'?pl(e,'Paga '+dm(x.dataPagamento)+(x.forma?' · '+esc(x.forma):'')):e==='hoje'?pl(e,'Vence hoje'):e==='venc'?pl(e,'Vencida há '+nDias(dias(x.vencimento,hoje))):x.vencimento?pl(e,'Em '+nDias(dias(hoje,x.vencimento))):pl(e,'Sem vencimento');};
+  const vence=x=>x.vencimento?(x.vencimento<hoje?'Venceu ':'Vence ')+terDia(x.vencimento):'Sem vencimento';
+  // Painel de números: parcelado (pago, a pagar, próximo vencimento) ou pagamento único (situação e forma).
+  const unico=ps[0], eU=unico?est(unico):'avencer';
+  const numeros=`<div class="tm-c tm-c1"><div class="tm-r">Valor total</div><div class="tm-v tm-tot">${brl(total)}</div><div class="tm-barra" aria-hidden="true">${barra}</div><div class="tm-s">${!parcelado&&quitado?'Quitado':pct+'% pago'} · ${parcelado?ps.length+' parcelas':'pagamento único'}</div></div>`;
+  const resto=parcelado
+    ?cel('Pago',brl(pago),pagas.length+' de '+ps.length+' parcelas','verde')
+     +cel('A pagar',quitado?'Quitado':brl(aPagar),quitado?'':nParc(abertas.length),quitado?'verde':'verm')
+     +(quitado||!prox?cel('Próximo vencimento','—',''):cel('Próximo vencimento',prox.vencimento===hoje?'Hoje':prox.vencimento<hoje?'Vencida há '+nDias(dias(prox.vencimento,hoje)):terDia(prox.vencimento),terDia(prox.vencimento)+' · '+brl(val(prox)),prox.vencimento===hoje?'ambar':prox.vencimento<hoje?'verm menor':'menor'))
+    :cel('Pagamento','Único','','menor')
+     +cel('Situação',!unico?'—':unico.pago?'Pago em '+terDia(unico.dataPagamento):eU==='hoje'?'Vence hoje':'Vence '+terDia(unico.vencimento),eU==='venc'?'Vencido há '+nDias(dias(unico.vencimento,hoje)):eU==='hoje'?terDia(unico.vencimento):'',unico&&unico.pago?'verde menor':eU==='venc'?'verm menor':eU==='hoje'?'ambar menor':'menor')
+     +cel('Forma',unico&&unico.forma?esc(unico.forma):'—','','menor');
+  // Linha do tempo: até 6 parcelas; o resto aparece na tabela.
+  const vis=ps.slice(0,6), mais=ps.length-vis.length, ultPaga=vis.reduce((k,x,i)=>x.pago?i:k,-1);
+  const trilho=vis.length>1&&ultPaga>=0?Math.min(ultPaga+1,vis.length-1)/(vis.length-1)*100:0; // verde até a parcela em curso (a seguinte à última paga)
+  const crono=parcelado?`<div class="tm-sec">Cronograma de pagamento</div>
+    <div class="tm-tl" style="--n:${vis.length}"><div class="tm-trilho" style="left:calc(100% / ${vis.length} / 2);right:calc(100% / ${vis.length} / 2)"><i style="width:${trilho}%"></i></div>
+    ${vis.map(x=>{const e=est(x);return `<div class="tm-p"><span class="tm-bol ${e}">${e==='paga'?OK:x.numero}</span><b>${x.numero} · ${esc(x.descricao||'Parcela '+x.numero)}</b><strong>${brl(val(x))}</strong><small>${vence(x)}</small>${selo(x)}</div>`;}).join('')}</div>
+    ${mais>0?`<div class="tm-mais">+${mais} ${mais===1?'parcela':'parcelas'} na tabela abaixo</div>`:''}
+    <table class="tm-tab"><thead><tr><th>Nº</th><th>Descrição</th><th>Vencimento</th><th class="n">Valor</th><th>Situação</th><th>Pagamento</th></tr></thead><tbody>
+    ${ps.map(x=>{const e=est(x);return `<tr><td>${x.numero}</td><td>${esc(x.descricao||'Parcela '+x.numero)}</td><td>${terDia(x.vencimento)}</td><td class="n">${brl(val(x))}</td><td>${pl(e,{paga:'Paga',hoje:'Vence hoje',venc:'Vencida',avencer:'A vencer'}[e])}</td><td>${x.pago?terDia(x.dataPagamento)+(x.forma?' · '+esc(x.forma):''):'—'}</td></tr>`;}).join('')}
+    <tr class="t"><td></td><td>Total</td><td></td><td class="n">${brl(total)}</td><td colspan="2">Pago ${brl(pago)} · A pagar ${brl(aPagar)}</td></tr></tbody></table>`:'';
+  const rotConf=l.conferencia==='REPROVADO'?'Reprovado por':l.conferencia==='CANCELADO'?'Cancelado por':'Conferido por';
+  const reg=(rot,quem,quando,cinza)=>`<div class="tm-rg"><div class="tm-r">${esc(rot)}</div><div class="tm-rn${cinza?' cinza':''}">${quebra(quem||'—')}</div><div class="tm-s">${esc(quando||'')}&nbsp;</div></div>`;
+  const doc=`<div class="tm">
+    <div class="tm-band">
+      <div class="tm-top"><img src="${document.getElementById('brandLogo').src}" alt="Zayda Construtora" />
+        <div class="tm-idb"><div class="tm-tipo">Lançamento de outro fornecedor${parcelado?' · Parcelado':''}</div><div class="tm-cod">${esc(l.id)}</div><span class="tm-selo ${SELO[0]}"><i></i>${esc(SELO[1])}</span></div></div>
+      <div class="tm-dados"><div><div class="tm-r">Data de referência</div><div class="v">${terDia(l.dataRef)}</div></div><div><div class="tm-r">Nº nota / orçamento</div><div class="v">${esc(l.nota||'—')}</div></div><div><div class="tm-r">Etapa da obra</div><div class="v">${esc(l.etapa||'—')}</div></div><div><div class="tm-r">Entra no custo</div><div class="v">${esc(custo)}</div></div></div>
     </div>
-    <div class="print-section-name">Obra e etapa</div>
-    <div class="print-info">${field('Obra',l.obra+(o?' · '+o.endereco:''),'wide')}${field('Etapa da obra',l.etapa)}</div>
-    <div class="print-section-name">Fornecedor</div>
-    <div class="print-info">${field('Fornecedor',l.fornecedor,'wide')}${field('Tipo',f.tipo||l.tipo)}${f.doc?field('CPF/CNPJ',f.doc):''}${f.telefone?field('Telefone',f.telefone):''}</div>
-    <div class="print-section-name">Compra / serviço</div>
-    <div class="print-info">${field('Tipo',l.tipo)}${field('Nº da nota/orçamento',l.nota)}${qtd?field('Quantidade',qtd):''}${field('Descrição',l.descricao,'full')}</div>
-    <div class="print-section-name">Valores</div>
-    <div class="print-valores"><div class="pv-total"><span>Valor total</span><strong>${brl(Number(l.valor)||0)}</strong></div><div><span>Forma de pagamento</span><b>${l.forma==='PARCELADO'?'Parcelado em '+ps.length:'Único'}</b></div></div>
-    <div class="print-section-name">Parcelas</div>
-    <table class="print-table"><thead><tr><th style="width:6%">Nº</th><th style="width:34%">Descrição</th><th class="num" style="width:18%">Valor</th><th style="width:16%">Vencimento</th><th style="width:26%">Situação</th></tr></thead><tbody>${linhas||'<tr><td colspan="5">Sem parcelas.</td></tr>'}</tbody></table>
-    <div class="print-tot2"><div><span>Pago</span><b>${brl(pago)}</b></div><div><span>A pagar</span><b>${brl(aPagar)}</b></div></div>
-    ${notas.length?`<div class="print-section-name">Observação</div><div class="print-notes">${notas.map(esc).join('<br>')}</div>`:''}
-    <div class="print-section-name">Registro</div>
-    <div class="print-reg">${reg('Lançado por',nome(l.criadoPor),terQuando(l.criadoEm))}${l.conferidoPor?reg(rotConf,nome(l.conferidoPor),terQuando(l.conferidoEm)):reg('Conferido por','Ainda não conferido','')}${reg('Emitido por',emissor,agora.replace(', ',' às '))}</div>
-    ${l.conferencia==='AGUARDANDO'||l.conferencia==='REPROVADO'?'<div class="print-ass">Conferido por: ________________________________ &nbsp;&nbsp; Data: ____/____/________</div>':''}
-    <div class="print-bottom"><span><strong>Zayda Construtora</strong> · Controle interno de compras e serviços</span><span>Lançamento não comprova pagamento sem o comprovante</span></div>
+    <div class="tm-corpo">
+      <div class="tm-num">${numeros}${resto}</div>
+      <div class="tm-sec">Resumo do lançamento</div>
+      <div class="tm-cards">
+        <div class="tm-card"><div class="tm-ch">${ico('obra')}<span class="tm-r">Obra</span></div><b>${esc(l.obra||'—')}</b>${o&&o.endereco?`<div>${esc(o.endereco)}</div>`:''}${o&&o.cliente?`<div class="tm-cz">Cliente: ${esc(o.cliente)}</div>`:''}</div>
+        <div class="tm-card"><div class="tm-ch">${ico('forn')}<span class="tm-r">Fornecedor</span></div><b>${esc(l.fornecedor||'—')}</b>${f.tipo||l.tipo?`<div>${esc(f.tipo||l.tipo)}</div>`:''}${f.doc?`<div class="tm-cz">${esc(docTxt(f.doc))}</div>`:''}${f.telefone?`<div class="tm-cz">${esc(telTxt(f.telefone))}</div>`:''}</div>
+        <div class="tm-card"><div class="tm-ch">${ico('compra')}<span class="tm-r">Compra / serviço</span></div><b>${esc(l.descricao||'—')}</b>${qtd?`<div>Quantidade: ${esc(qtd)}</div>`:''}${l.nota?`<div class="tm-cz">Nota/orçamento ${esc(l.nota)}</div>`:''}</div>
+      </div>
+      ${crono}
+      ${notas.length?`<div class="tm-sec">Observação</div><div class="tm-obs">${notas.map(esc).join('<br>')}</div>`:''}
+      <div class="tm-sec">Registro</div>
+      <div class="tm-reg">${reg('Lançado por',nome(l.criadoPor),terQuando(l.criadoEm))}${l.conferidoPor?reg(rotConf,nome(l.conferidoPor),terQuando(l.conferidoEm)):reg('Conferido por','Aguardando','conferência pelo financeiro',true)}${reg('Emitido por',emissor,agora)}</div>
+      <div class="tm-ass"><div class="tm-r">Recebimento na obra</div><div class="tm-ass-l"><span>Recebido por:</span><i></i><span>Data:</span><i class="d"></i><span>Assinatura:</span><i></i></div></div>
+    </div>
   </div>`;
-  document.getElementById('printSheet').innerHTML='<table class="print-folha"><thead><tr><td><div class="print-esp"></div></td></tr></thead><tfoot><tr><td><div class="print-esp"></div></td></tr></tfoot><tbody><tr><td>'+wrapper+'</td></tr></tbody></table>';
+  document.getElementById('printSheet').innerHTML=`<div class="tm-folha">${doc}</div>`;
   ajustarUmaPagina();
   window.print();
 }
