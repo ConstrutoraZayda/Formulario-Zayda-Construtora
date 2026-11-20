@@ -70,93 +70,96 @@ header small{color:#5b7260!important;}
 /* Documento A4 exclusivo: fora da tela, visível apenas na impressão.
    [ZAYDA 1.3] Layout compacto e ajuste automático para caber em 1 página A4. */
 #printSheet { display:none; }
+/* Margens das folhas impressas (A4), num lugar só: as mesmas do painel. Se mudar aqui, ajuste também o @page termb. */
+#printSheet{--imp-lado:15mm;--imp-topo:12mm;--imp-base:15mm}
 #printSheet, #printSheet * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
 @page { size:A4 portrait; margin:0; }
 .print-folha {width:100%; border-collapse:collapse;}
-.print-folha > thead > tr > td, .print-folha > tfoot > tr > td, .print-folha > tbody > tr > td {padding:0 11mm; border:0;}
-.print-esp {height:10mm;}
+.print-folha > thead > tr > td, .print-folha > tfoot > tr > td, .print-folha > tbody > tr > td {padding:0 var(--imp-lado); border:0;}
+.print-folha > thead .print-esp {height:var(--imp-topo);}
+.print-folha > tfoot .print-esp {height:var(--imp-base);}
 .print-page { width:auto; box-sizing:border-box; padding:0; font-family:Arial,Helvetica,sans-serif;
-  font-size:10pt; line-height:1.3; color:#0F1A14; background:#fff; }
+  font-size:11.25pt; line-height:1.3; color:#0F1A14; background:#fff; font-variant-numeric:tabular-nums; zoom:var(--z,1); }
 .print-head { display:flex; justify-content:space-between; align-items:center; padding-bottom:4mm; border-bottom:2.5px solid #00632B; gap:8mm; }
 .print-brand { display:flex; align-items:center; flex:0 0 auto; max-width:62mm; }
 .print-real-logo { display:block; width:54mm; background:#fff; max-width:100%; height:auto; }
 .print-doclabel {text-align:right; max-width:110mm;}
-.print-doclabel span {font-size:9pt; font-weight:800; letter-spacing:1.2px; color:#3A4A40;}
-.print-doclabel strong { display:block; font-size:14pt; margin:1.5mm 0 1mm; color:#0F1A14; overflow-wrap:anywhere; }
-.print-doclabel small { display:block; font-size:9.5pt; color:#3A4A40; }
+.print-doclabel span {font-size:10pt; font-weight:800; letter-spacing:1.2px; color:#3A4A40;}
+.print-doclabel strong { display:block; font-size:15.75pt; margin:1.5mm 0 1mm; color:#0F1A14; overflow-wrap:anywhere; }
+.print-doclabel small { display:block; font-size:10.75pt; color:#3A4A40; }
 .print-chip { display:inline-block; background:#F1F8F3; border:1px solid #00632B; color:#00632B; padding:1.2mm 3mm;
-  border-radius:1.5mm; font-weight:700; font-size:9pt; margin-top:2mm; }
+  border-radius:1.5mm; font-weight:700; font-size:10pt; margin-top:2mm; }
 .print-chip.draft { background:#FFF3DF; color:#B26A00; border-color:#B26A00; }
-.print-section-name {font-size:10pt; font-weight:800; letter-spacing:.6px; text-transform:uppercase; color:#00632B; margin:3.5mm 0 1.6mm; }
+.print-section-name {font-size:11.25pt; font-weight:800; letter-spacing:.6px; text-transform:uppercase; color:#00632B; margin:3.5mm 0 1.6mm; }
 .print-info { display:grid; grid-template-columns:1fr 1fr 1fr; gap:2.2mm 6mm; padding:2.8mm 3.5mm; background:#F1F8F3; border:1px solid #B9CCBF; border-radius:2mm; }
 .print-field {min-width:0; overflow-wrap:break-word;}
 .print-field.wide {grid-column:span 2;}
 .print-field.full {grid-column:1/-1;}
-.print-field.email .val {font-size:9pt; font-weight:600; word-break:break-all; color:#0F1A14;}
-.print-field .key {font-size:8pt; color:#3A4A40; text-transform:uppercase; font-weight:800; letter-spacing:.4px; margin-bottom:.6mm;}
-.print-field .val {font-size:10.8pt; color:#0F1A14; font-weight:700;}
-.print-table {width:100%; border-collapse:collapse; table-layout:fixed; font-size:10pt; color:#0F1A14;}
+.print-field.email .val {font-size:10pt; font-weight:600; word-break:break-all; color:#0F1A14;}
+.print-field .key {font-size:9pt; color:#3A4A40; text-transform:uppercase; font-weight:800; letter-spacing:.4px; margin-bottom:.6mm;}
+.print-field .val {font-size:12pt; color:#0F1A14; font-weight:700;}
+.print-table {width:100%; border-collapse:collapse; table-layout:fixed; font-size:11.25pt; color:#0F1A14;}
 .print-table thead { display:table-header-group; }
-.print-table th {padding:1.8mm 2mm; background:#00632B; color:#FFFFFF; text-align:left; font-size:8.8pt; text-transform:uppercase; letter-spacing:.25px; font-weight:700;}
+.print-table th {padding:1.8mm 2mm; background:#00632B; color:#FFFFFF; text-align:left; font-size:9.75pt; text-transform:uppercase; letter-spacing:.25px; font-weight:700;}
 .print-table th.num, .print-table td.num{text-align:right; white-space:nowrap;}
 .print-table td {border-bottom:1px solid #B9CCBF; padding:1.5mm 2mm; vertical-align:top;}
 .print-table tbody tr:nth-child(even){background:#F3F9F5;}
 .print-table tr{break-inside:avoid;page-break-inside:avoid;}
 .print-table .item-name{font-weight:700;color:#0F1A14;overflow-wrap:anywhere;}
-.print-table .sku{font-size:8pt;color:#3A4A40;margin-top:.2mm;}
-.print-table td.qtd{font-weight:800;font-size:11pt;}
+.print-table .sku{font-size:9pt;color:#3A4A40;margin-top:.2mm;}
+.print-table td.qtd{font-weight:800;font-size:12.25pt;}
 .print-table .price-missing{color:#B26A00;background:#FFF3DF;font-style:italic;font-weight:700;padding:0 1mm;border-radius:1mm;}
 .print-lower {display:grid; grid-template-columns:minmax(0,1fr) 72mm; gap:6mm; margin-top:3mm; align-items:start;}
-.print-summary-box {background:#E6F4EA; border:1px solid #B9CCBF; padding:3.5mm 4mm; border-radius:2mm; break-inside:avoid;}
-.print-summary-row {display:flex;justify-content:space-between;gap:4mm;font-size:10pt;margin-bottom:1.4mm;color:#0F1A14;}
-.print-summary-total {display:flex;justify-content:space-between;align-items:baseline; border-top:1px solid #B9CCBF;padding-top:2.2mm;font-weight:800;font-size:10.5pt;color:#0F1A14;}
-.print-summary-total strong{font-size:15pt;color:#0A8A3E;}
-.print-notes {font-size:10pt; padding:2.2mm 3mm; border-left:3px solid #00632B; background:#F1F8F3; color:#0F1A14; overflow-wrap:break-word;white-space:pre-wrap;}
-.print-alert {font-size:9.5pt;color:#B26A00;background:#FFF3DF;border:1px solid #B26A00;font-weight:700;padding:2.2mm;border-radius:1.5mm;margin-top:2mm;}
-.print-signatures {display:grid;grid-template-columns:repeat(3,1fr);gap:8mm;margin-top:13mm;break-inside:avoid;}
-.print-signature{text-align:center;color:#3A4A40;font-size:9.5pt;}
+.print-summary-box {background:#E6F4EA; border:1px solid #B9CCBF; padding:3.5mm 4mm; border-radius:2mm; break-inside:avoid; page-break-inside:avoid;}
+.print-summary-row {display:flex;justify-content:space-between;gap:4mm;font-size:11.25pt;margin-bottom:1.4mm;color:#0F1A14;}
+.print-summary-total {display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:0 3mm; border-top:1px solid #B9CCBF;padding-top:2.2mm;font-weight:800;font-size:11.75pt;color:#0F1A14;}
+.print-summary-total strong{font-size:16.75pt;color:#0A8A3E;margin-left:auto;white-space:nowrap;}
+.print-notes {font-size:11.25pt; padding:2.2mm 3mm; border-left:3px solid #00632B; background:#F1F8F3; color:#0F1A14; overflow-wrap:break-word;white-space:pre-wrap;}
+.print-alert {font-size:10.75pt;color:#B26A00;background:#FFF3DF;border:1px solid #B26A00;font-weight:700;padding:2.2mm;border-radius:1.5mm;margin-top:2mm;}
+.print-signatures {display:grid;grid-template-columns:repeat(3,1fr);gap:8mm;margin-top:13mm;break-inside:avoid;page-break-inside:avoid;}
+.print-signature{text-align:center;color:#3A4A40;font-size:10.75pt;}
 .print-signature .linha{border-top:1.2px solid #0F1A14;margin-bottom:1.6mm;}
-.print-signature b{display:block;font-size:10pt;color:#0F1A14;text-transform:uppercase;letter-spacing:.3px;}
+.print-signature b{display:block;font-size:11.25pt;color:#0F1A14;text-transform:uppercase;letter-spacing:.3px;}
 .print-signature .nome{display:block;margin-top:1mm;min-height:4.5mm;font-weight:600;}
 .print-signature .data{display:block;margin-top:1.8mm;color:#3A4A40;}
-.print-bottom{border-top:1px solid #B9CCBF;padding-top:2mm;margin-top:5mm;display:flex;justify-content:space-between;gap:4mm;color:#3A4A40;font-size:8.5pt;}
-.print-bottom strong{color:#0F1A14;}
+.print-doclabel small.print-emi{font-size:9pt;color:#6B7A72;margin-top:.6mm;}
+.tm-emi{margin-top:1.6mm;font-size:8.5pt;color:#6B7A72;}
 /* [ZAYDA 3.8] Impressão do lançamento de outro fornecedor (modelo "cronograma completo"): faixa verde, painel de números, resumo, cronograma, registro e assinaturas */
 .tm-folha,.tm-folha *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;box-sizing:border-box;}
-.tm{font-family:Arial,Helvetica,sans-serif;font-size:10pt;line-height:1.35;color:#16231B;background:#fff;font-variant-numeric:tabular-nums;}
+.tm{font-family:Arial,Helvetica,sans-serif;font-size:11.25pt;line-height:1.35;color:#16231B;background:#fff;font-variant-numeric:tabular-nums;}
 .tm b,.tm strong{font-weight:700;}
-.tm-r{font-size:7.5pt;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#6B7A72;}
-.tm-band{position:relative;margin:0 15mm;padding:5mm 6mm 14mm;color:#16231B;background:#EEF6F0;border-top:1.6mm solid #1F8A43;border-radius:2.5mm 2.5mm 0 0;} /* dentro da área que a impressora imprime: 10 mm do topo e alinhada ao conteúdo */
+.tm-r{font-size:8.5pt;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#6B7A72;}
+.tm-band{position:relative;margin:0 var(--imp-lado);padding:5mm 6mm 14mm;color:#16231B;background:#EEF6F0;border-top:1.6mm solid #1F8A43;border-radius:2.5mm 2.5mm 0 0;} /* dentro da área que a impressora imprime: 12 mm do topo e alinhada ao conteúdo */
 .tm-top{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-start;gap:8mm;}
 .tm-top img{width:52mm;height:auto;flex:none;}
 .tm-idb{min-width:0;text-align:right;}
-.tm-tipo{font-size:7.5pt;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:#2F6B45;}
-.tm-cod{margin:1.4mm 0 2.2mm;font-size:21pt;font-weight:800;letter-spacing:.3px;color:#16231B;overflow-wrap:anywhere;}
-.tm-selo{display:inline-flex;align-items:center;gap:2mm;padding:1.1mm 3.6mm;border-radius:99px;background:#FFF3D9;color:#7E4B00;font-size:8.5pt;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;}
+.tm-tipo{font-size:8.5pt;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:#2F6B45;}
+.tm-cod{margin:1.4mm 0 2.2mm;font-size:23.5pt;font-weight:800;letter-spacing:.3px;color:#16231B;overflow-wrap:anywhere;}
+.tm-selo{display:inline-flex;align-items:center;gap:2mm;padding:1.1mm 3.6mm;border-radius:99px;background:#FFF3D9;color:#7E4B00;font-size:9.5pt;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;}
 .tm-selo i{width:2.4mm;height:2.4mm;border-radius:50%;background:#E8A21A;}
 .tm-selo.ok{background:#E2F3E7;color:#0E5A2C;}.tm-selo.ok i{background:#1F8A43;}
 .tm-selo.bad{background:#FDE6E6;color:#9B1C1C;}.tm-selo.bad i{background:#D93636;}
 .tm-selo.canc{background:#ECEFEE;color:#404A45;}.tm-selo.canc i{background:#8A948F;}
 .tm-dados{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,auto);justify-content:start;gap:0 11mm;margin-top:4mm;}
 .tm-dados .tm-r{color:#3F6B50;}
-.tm-dados .v{margin-top:1mm;font-size:10.5pt;color:#16231B;}
-.tm-corpo{padding:0 15mm;}
+.tm-dados .v{margin-top:1mm;font-size:11.75pt;color:#16231B;}
+.tm-corpo{padding:0 calc(var(--imp-lado) / var(--z,1));zoom:var(--z,1);} /* --z: só quando precisa encolher para caber em 1 folha (a margem continua 15 mm) */
 .tm-num{position:relative;z-index:2;display:grid;grid-template-columns:minmax(0,1.35fr) repeat(3,minmax(0,1fr));margin-top:-11mm;background:#fff;border:1px solid #CFE3D5;border-radius:4mm;box-shadow:0 .6mm 2mm rgba(0,0,0,.06);break-inside:avoid;page-break-inside:avoid;}
-.tm-c{min-width:0;padding:3.2mm 4mm;}
+.tm-c{min-width:0;padding:3.2mm 3mm;}
 .tm-c+.tm-c{border-left:1px solid #E4E9E6;}
-.tm-v{margin-top:1.2mm;font-size:13.5pt;font-weight:800;line-height:1.15;color:#16231B;white-space:nowrap;}
-.tm-v.tm-tot{font-size:20pt;color:#0D4424;}
-.tm-v.menor{font-size:12pt;white-space:normal;}
+.tm-v{margin-top:1.2mm;font-size:14.5pt;font-weight:800;line-height:1.15;color:#16231B;white-space:nowrap;}
+.tm-v.tm-tot{font-size:21pt;color:#0D4424;}
+.tm-v.menor{font-size:13.5pt;white-space:normal;}
 .tm-v.verde{color:#1A7A3B;}.tm-v.verm{color:#B42318;}.tm-v.ambar{color:#9A5A00;}
-.tm-s{margin-top:1mm;font-size:8.5pt;color:#6B7A72;}
+.tm-s{margin-top:1mm;font-size:9.5pt;color:#6B7A72;}
 .tm-barra{display:flex;height:2.6mm;margin-top:3mm;border-radius:2mm;overflow:hidden;background:#E8ECEA;}
 .tm-barra i{display:block;height:100%;}
 .tm-barra .pg{background:#1F8A43;}.tm-barra .at{background:#EFA12E;}.tm-barra .av{background:#E8ECEA;}
-.tm-sec{display:flex;align-items:center;gap:4mm;margin:3.6mm 0 1.8mm;font-size:8.5pt;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0E5A2C;break-after:avoid;page-break-after:avoid;}
+.tm-sec{display:flex;align-items:center;gap:4mm;margin:3.6mm 0 1.8mm;font-size:9.5pt;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0E5A2C;break-after:avoid;page-break-after:avoid;}
 .tm-sec::after{content:"";flex:1;height:1px;background:#DDE3E0;}
 .tm-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4mm;break-inside:avoid;page-break-inside:avoid;}
 .tm-card{min-width:0;padding:2.8mm 4mm;border:1px solid #DDE3E0;border-radius:3mm;overflow-wrap:anywhere;}
-.tm-card b{display:block;font-size:10.5pt;line-height:1.3;}
+.tm-card b{display:block;font-size:11.75pt;line-height:1.3;}
 .tm-ch{display:flex;align-items:center;gap:2.5mm;margin-bottom:1.8mm;}
 .tm-ico{display:inline-flex;align-items:center;justify-content:center;width:6.5mm;height:6.5mm;border-radius:1.5mm;background:#E6F3EA;color:#17632F;flex:none;}
 .tm-ico svg{width:4.2mm;height:4.2mm;}
@@ -165,20 +168,20 @@ header small{color:#5b7260!important;}
 .tm-trilho{position:absolute;top:4.5mm;height:.7mm;background:#DDE3E0;}
 .tm-trilho i{display:block;height:100%;background:#1F8A43;}
 .tm-p{position:relative;min-width:0;padding:0 2mm;text-align:center;}
-.tm-p b{display:block;margin-top:1.4mm;font-size:9.5pt;overflow-wrap:anywhere;}
-.tm-p strong{display:block;font-size:12pt;}
-.tm-p small{display:block;font-size:8.5pt;color:#6B7A72;margin-bottom:.6mm;}
+.tm-p b{display:block;margin-top:1.4mm;font-size:10.75pt;overflow-wrap:anywhere;}
+.tm-p strong{display:block;font-size:13.5pt;}
+.tm-p small{display:block;font-size:9.5pt;color:#6B7A72;margin-bottom:.6mm;}
 .tm-p .tm-pl{white-space:normal;}
-.tm-bol{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;width:9mm;height:9mm;border-radius:50%;border:.7mm solid #C9D1CC;background:#fff;color:#5D6A63;font-size:11pt;font-weight:800;box-shadow:0 0 0 .9mm #fff;}
+.tm-bol{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;width:9mm;height:9mm;border-radius:50%;border:.7mm solid #C9D1CC;background:#fff;color:#5D6A63;font-size:12.25pt;font-weight:800;box-shadow:0 0 0 .9mm #fff;}
 .tm-bol svg{width:5mm;height:5mm;}
 .tm-bol.paga{background:#1F8A43;border-color:#1F8A43;color:#fff;box-shadow:0 0 0 .9mm #fff,0 0 0 1.4mm #1F8A43;}
 .tm-bol.hoje{background:#EFA12E;border-color:#EFA12E;color:#fff;box-shadow:0 0 0 .9mm #fff,0 0 0 1.4mm #EFA12E;}
 .tm-bol.venc{background:#C62828;border-color:#C62828;color:#fff;box-shadow:0 0 0 .9mm #fff,0 0 0 1.4mm #C62828;}
-.tm-pl{display:inline-block;padding:.5mm 2.4mm;border-radius:99px;font-size:7.8pt;font-weight:800;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap;}
+.tm-pl{display:inline-block;padding:.5mm 2.4mm;border-radius:99px;font-size:8.75pt;font-weight:800;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap;}
 .tm-pl.paga{background:#E2F3E7;color:#0E5A2C;}.tm-pl.hoje{background:#FFF1D6;color:#7E4B00;}.tm-pl.venc{background:#FDE6E6;color:#9B1C1C;}.tm-pl.avencer{background:#ECEFEE;color:#4A5550;}
-.tm-mais{margin-top:1.5mm;text-align:right;font-size:8.5pt;color:#6B7A72;}
-.tm-tab{width:100%;margin-top:3mm;border-collapse:collapse;font-size:10pt;}
-.tm-tab th{padding:0 2mm 1.8mm;border-bottom:1.5px solid #16231B;text-align:left;font-size:7.5pt;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#6B7A72;}
+.tm-mais{margin-top:1.5mm;text-align:right;font-size:9.5pt;color:#6B7A72;}
+.tm-tab{width:100%;margin-top:3mm;border-collapse:collapse;font-size:11.25pt;}
+.tm-tab th{padding:0 2mm 1.8mm;border-bottom:1.5px solid #16231B;text-align:left;font-size:8.5pt;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#6B7A72;}
 .tm-tab td{padding:1mm 2mm;border-bottom:1px solid #E4E9E6;vertical-align:middle;}
 .tm-tab tr{break-inside:avoid;page-break-inside:avoid;}
 .tm-tab .n{text-align:right;white-space:nowrap;}
@@ -187,22 +190,29 @@ header small{color:#5b7260!important;}
 .tm-obs{padding:2.6mm 4.5mm;border-left:1.2mm solid #1F8A43;border-radius:0 2mm 2mm 0;background:#F3F6F4;white-space:pre-wrap;overflow-wrap:anywhere;break-inside:avoid;page-break-inside:avoid;}
 .tm-reg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4mm;break-inside:avoid;page-break-inside:avoid;}
 .tm-rg{min-width:0;padding:2.6mm 4mm;border:1px solid #DDE3E0;border-radius:3mm;}
-.tm-rn{margin-top:.8mm;font-size:11pt;font-weight:800;overflow-wrap:anywhere;}
+.tm-rn{margin-top:.8mm;font-size:12.25pt;font-weight:800;overflow-wrap:anywhere;}
 .tm-rn.cinza{color:#9AA6A0;}
 .tm-ass{margin-top:4mm;padding:3mm 5mm 3.5mm;border:1px dashed #AEB8B3;border-radius:3mm;break-inside:avoid;page-break-inside:avoid;}
-.tm-ass-l{display:grid;grid-template-columns:auto minmax(0,1.6fr) auto minmax(0,.8fr) auto minmax(0,1.7fr);align-items:end;gap:0 2.5mm;margin-top:4.5mm;font-size:10pt;color:#5D6A63;}
+.tm-ass-l{display:grid;grid-template-columns:auto minmax(0,1.6fr) auto minmax(0,.8fr) auto minmax(0,1.7fr);align-items:end;gap:0 2.5mm;margin-top:4.5mm;font-size:11.25pt;color:#5D6A63;}
 .tm-ass-l i{display:block;height:0;border-bottom:1px solid #16231B;margin-right:4mm;}
 .tm-ass-l i:last-child{margin-right:0;}
+/* Não coube em 1 folha: só os espaços diminuem */
+.print-page.aperta{line-height:1.13;}.print-page.aperta .print-head{padding-bottom:2mm;}.print-page.aperta .print-doclabel strong{margin:.8mm 0 .4mm;}.print-page.aperta .print-chip{margin-top:1mm;padding:.8mm 3mm;}.print-page.aperta .print-section-name{margin:2mm 0 1mm;}.print-page.aperta .print-info{padding:1.6mm 3mm;gap:1mm 6mm;}.print-page.aperta .print-field .key{margin-bottom:.2mm;}
+.print-page.aperta .print-table td{padding:.7mm 2mm;}.print-page.aperta .print-table th{padding:1mm 2mm;}.print-page.aperta .print-table .sku{margin-top:0;}.print-page.aperta .print-lower{margin-top:2mm;}.print-page.aperta .print-summary-box{padding:2mm 3mm;}.print-page.aperta .print-summary-row{margin-bottom:.6mm;}.print-page.aperta .print-summary-total{padding-top:1.4mm;}.print-page.aperta .print-alert{padding:1.4mm 2mm;}.print-page.aperta .print-signatures{margin-top:9mm;}
+.tm.aperta{line-height:1.25;}.tm.aperta .tm-band{padding:4mm 6mm 13mm;}.tm.aperta .tm-sec{margin:2.6mm 0 1.4mm;}.tm.aperta .tm-card,.tm.aperta .tm-rg{padding:2mm 3.5mm;}.tm.aperta .tm-tab td{padding:.6mm 2mm;}.tm.aperta .tm-ass{margin-top:3mm;padding:2.4mm 5mm 3mm;}
 @media print{
   .tm-folha{page:termb;}
-  @page termb{size:A4;margin:10mm 0 8mm 0;}
+  @page termb{size:A4;margin:12mm 0 15mm 0;} /* topo e base = --imp-topo e --imp-base (o @page não lê variáveis) */
 }
 @media print {
   html, body { background:#fff !important; color:#0F1A14 !important; margin:0 !important;
     -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   body > header, body > .topbar, body > .wrap, body > #message { display:none !important; }
   #printSheet {display:block !important; position:static !important; width:auto !important; height:auto !important; overflow:visible !important; }
-  .print-page { width:auto !important; zoom:1 !important; transform:none !important; }
+  .print-page { width:auto !important; zoom:var(--z,1) !important; transform:none !important; }
+  /* Só a folha vai para o papel, na largura toda: nada de fora alarga a página (o navegador encolheria tudo para caber). */
+  html, body { width:auto !important; min-width:0 !important; max-width:none !important; padding:0 !important; overflow:visible !important; zoom:1 !important; }
+  body > :not(#printSheet) { display:none !important; }
 }
 /* [ZAYDA 1.4] Sugestões de obra no endereço */
 .obrain{position:relative;display:block}.obrain input{padding-right:72px}.obralimpa{position:absolute;right:36px;top:50%;transform:translateY(-50%);border:0;background:none;font-size:20px;line-height:1;color:var(--grey);cursor:pointer;padding:4px 8px;border-radius:6px}.obralimpa:hover{background:#eef3ef;color:#123}.obraseta{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:none;font-size:16px;color:var(--grey);cursor:pointer;padding:6px 10px}
@@ -1060,7 +1070,18 @@ document.getElementById('buscaPedido').addEventListener('input',buscarPedido);
 // [ZAYDA 1.3] Reduz a escala do documento quando ele passaria de uma página A4.
 /* Impressão em folha A4 com margem normal, sem redução de escala: pedido pequeno sai em 1 página,
    pedido grande continua na 2ª página com a mesma letra (o cabeçalho da tabela se repete). */
-function ajustarUmaPagina(){ const page=document.querySelector('#printSheet .print-page'); if(page) page.style.zoom=''; }
+/* Folha A4 sem redução de escala sempre que possível. Se passar de 1 página: primeiro diminuem os espaços (classe "aperta");
+   se ainda passar um pouco, o conteúdo encolhe só o necessário para caber, até 90% (a letra nunca fica menor que antes do aumento de 12%).
+   Assim nunca sai uma folha extra quase vazia (só as assinaturas). Pedido grande continua na 2ª folha com a letra normal. */
+function ajustarUmaPagina(){ const sh=document.getElementById('printSheet'), tm=!!sh.querySelector('.tm-folha');
+  const alvo=sh.querySelector(tm?'.tm':'.print-page'), zoomEl=sh.querySelector(tm?'.tm-corpo':'.print-page'), folha=sh.querySelector(tm?'.tm-folha':'.print-folha'); if(!alvo||!folha) return;
+  alvo.classList.remove('aperta'); zoomEl.style.removeProperty('--z');
+  const st=sh.style.cssText; sh.style.cssText='display:block;position:absolute;left:-10000px;top:0;width:210mm;visibility:hidden';
+  const mm=sh.getBoundingClientRect().width/210, lim=(tm?297-12-15:297)*mm-2, alt=()=>folha.getBoundingClientRect().height; // pedido: as margens de cima e de baixo já estão dentro da folha
+  if(alt()>lim){ alvo.classList.add('aperta'); const a=alt(); if(a>lim&&a*.9<=lim) zoomEl.style.setProperty('--z',Math.floor(lim/a*100)/100); }
+  sh.style.cssText=st; }
+/* Nome com só a primeira letra de cada nome maiúscula ("da", "de", "dos", "e" ficam minúsculos). */
+const nomeProprio=s=>String(s||'').toLowerCase().replace(/(^|[\s/(.-])(\p{L})/gu,(m,a,b)=>a+b.toUpperCase()).replace(/ (Da|De|Do|Das|Dos|E) /g,m=>m.toLowerCase());
 // Modelo de impressão profissional independente da interface do formulário.
 // Campos escapados evitam que texto de produtos e destinatários vire HTML.
 function printRelation() {
@@ -1076,7 +1097,8 @@ function printRelation() {
   // Ao editar um pedido existente, evita indicar como definitivo um formulário não salvo.
   const confirmado=Boolean(currentOrder && lastSavedSignature && JSON.stringify(p)===lastSavedSignature);
   const codigo=confirmado?currentOrder:'PRÉVIA SEM REGISTRO';
-  const now=new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date());
+  const now=new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date()).replace(', ',' às ');
+  const emissor=(user&&user.nome)||String(user&&user.email||'').split('@')[0]||'—';
   const missing=cart.filter(i=>semPrecoV(i.preco)).length;
   const total=cart.reduce((sum,i)=>sum+(semPrecoV(i.preco)?0:Number(i.quantidade)*Number(i.preco)),0);
   const itHtml=cart.map((it,i)=>{
@@ -1090,7 +1112,7 @@ function printRelation() {
     <div class="print-head">
       <div class="print-brand"><img class="print-real-logo" src="${document.getElementById('brandLogo').src}" alt="Zayda Construtora" /></div>
       <div class="print-doclabel"><span>RELAÇÃO DE MATERIAIS</span><strong>${esc(codigo)}</strong>
-        <small>${confirmado?'Revisão '+rev+' · ':''}Emitido em ${esc(now)}</small>
+        ${confirmado?'<small>Revisão '+rev+'</small>':''}<small class="print-emi">Emitido por ${esc(emissor)} em ${esc(now)}</small>
         <div class="print-chip${confirmado?'':' draft'}">${confirmado?(missing?'PENDENTE DE COTAÇÃO':'SOLICITAÇÃO REGISTRADA'):'PRÉVIA — ALTERAÇÕES NÃO SALVAS'}</div>${currentOrder&&cancelamento?`<div class="print-chip fechado">${cancelamento.tipo==='CANCELADO'?'CANCELADO':'ENCERRADO'}</div>`:''}
       </div>
     </div>
@@ -1120,7 +1142,6 @@ function printRelation() {
       <div class="print-signature"><div class="linha"></div><b>Responsável pela entrega</b></div>
       <div class="print-signature"><div class="linha"></div><b>Responsável pelo recebimento</b></div>
     </div>
-    <div class="print-bottom"><span><strong>ZAYDA CONSTRUTORA</strong> · Controle interno de materiais</span><span>Solicitação não comprova compra, entrega ou consumo.</span></div>
   </div>`;
   // Tabela externa: margem de cima e de baixo repetida em cada folha. Com a margem da página zerada,
   // o navegador não imprime data, título e endereço do site no papel.
@@ -1188,14 +1209,14 @@ function terImprimir(id){ const l=TERD&&TERD.lancamentos.find(x=>x.id===id); if(
   const doc=`<div class="tm">
     <div class="tm-band">
       <div class="tm-top"><img src="${document.getElementById('brandLogo').src}" alt="Zayda Construtora" />
-        <div class="tm-idb"><div class="tm-tipo">Lançamento de outro fornecedor${parcelado?' · Parcelado':''}</div><div class="tm-cod">${esc(l.id)}</div><span class="tm-selo ${SELO[0]}"><i></i>${esc(SELO[1])}</span></div></div>
+        <div class="tm-idb"><div class="tm-tipo">Lançamento de outro fornecedor${parcelado?' · Parcelado':''}</div><div class="tm-cod">${esc(l.id)}</div><span class="tm-selo ${SELO[0]}"><i></i>${esc(SELO[1])}</span><div class="tm-emi">Emitido por ${esc(emissor)} em ${esc(agora)}</div></div></div>
       <div class="tm-dados"><div><div class="tm-r">Data de referência</div><div class="v">${terDia(l.dataRef)}</div></div><div><div class="tm-r">Nº nota / orçamento</div><div class="v">${esc(l.nota||'—')}</div></div><div><div class="tm-r">Etapa da obra</div><div class="v">${esc(l.etapa||'—')}</div></div><div><div class="tm-r">Entra no custo</div><div class="v">${esc(custo)}</div></div></div>
     </div>
     <div class="tm-corpo">
       <div class="tm-num">${numeros}${resto}</div>
       <div class="tm-sec">Resumo do lançamento</div>
       <div class="tm-cards">
-        <div class="tm-card"><div class="tm-ch">${ico('obra')}<span class="tm-r">Obra</span></div><b>${esc(l.obra||'—')}</b>${o&&o.endereco?`<div>${esc(o.endereco)}</div>`:''}${o&&o.cliente?`<div class="tm-cz">Cliente: ${esc(o.cliente)}</div>`:''}</div>
+        <div class="tm-card"><div class="tm-ch">${ico('obra')}<span class="tm-r">Obra</span></div><b>${esc(l.obra||'—')}</b>${o&&o.endereco?`<div>${esc(o.endereco)}</div>`:''}${o&&o.cliente?`<div class="tm-cz">Cliente: ${esc(nomeProprio(o.cliente))}</div>`:''}</div>
         <div class="tm-card"><div class="tm-ch">${ico('forn')}<span class="tm-r">Fornecedor</span></div><b>${esc(l.fornecedor||'—')}</b>${f.tipo||l.tipo?`<div>${esc(f.tipo||l.tipo)}</div>`:''}${f.doc?`<div class="tm-cz">${esc(docTxt(f.doc))}</div>`:''}${f.telefone?`<div class="tm-cz">${esc(telTxt(f.telefone))}</div>`:''}</div>
         <div class="tm-card"><div class="tm-ch">${ico('compra')}<span class="tm-r">Compra / serviço</span></div><b>${esc(l.descricao||'—')}</b>${qtd?`<div>Quantidade: ${esc(qtd)}</div>`:''}${l.nota?`<div class="tm-cz">Nota/orçamento ${esc(l.nota)}</div>`:''}</div>
       </div>
